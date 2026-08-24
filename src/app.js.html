@@ -114,6 +114,94 @@ function askRoads(cols,runRes,cand){
 }
 
 /* ==========================================================================
+   2.5 玄學：八卦、五行、干支
+   -------------------------------------------------------------------------
+   全部是「可重現的推算」，不是亂數：同樣的牌路與局數，起出來的卦必定相同。
+   這樣才能把它丟進同一套回測裡，跟統計策略公平比較。
+   ========================================================================== */
+var TRI=[
+  {n:'乾',s:'☰',l:[1,1,1],e:'金',img:'天'},
+  {n:'兌',s:'☱',l:[1,1,0],e:'金',img:'澤'},
+  {n:'離',s:'☲',l:[1,0,1],e:'火',img:'火'},
+  {n:'震',s:'☳',l:[1,0,0],e:'木',img:'雷'},
+  {n:'巽',s:'☴',l:[0,1,1],e:'木',img:'風'},
+  {n:'坎',s:'☵',l:[0,1,0],e:'水',img:'水'},
+  {n:'艮',s:'☶',l:[0,0,1],e:'土',img:'山'},
+  {n:'坤',s:'☷',l:[0,0,0],e:'土',img:'地'}
+];
+var GUA64=[
+  ['乾為天','天澤履','天火同人','天雷無妄','天風姤','天水訟','天山遯','天地否'],
+  ['澤天夬','兌為澤','澤火革','澤雷隨','澤風大過','澤水困','澤山咸','澤地萃'],
+  ['火天大有','火澤睽','離為火','火雷噬嗑','火風鼎','火水未濟','火山旅','火地晉'],
+  ['雷天大壯','雷澤歸妹','雷火豐','震為雷','雷風恆','雷水解','雷山小過','雷地豫'],
+  ['風天小畜','風澤中孚','風火家人','風雷益','巽為風','風水渙','風山漸','風地觀'],
+  ['水天需','水澤節','水火既濟','水雷屯','水風井','坎為水','水山蹇','水地比'],
+  ['山天大畜','山澤損','山火賁','山雷頤','山風蠱','山水蒙','艮為山','山地剝'],
+  ['地天泰','地澤臨','地火明夷','地雷復','地風升','地水師','地山謙','坤為地']
+];
+var GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+var ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+var ZHI_E=['水','土','木','木','土','火','火','土','金','金','土','水'];
+var ZODIAC=['鼠','牛','虎','兔','龍','蛇','馬','羊','猴','雞','狗','豬'];
+var CAIWEI=['東北','東北','正西','正西','正北','正北','正東','正東','正南','正南'];
+var SHENG={'金':'水','水':'木','木':'火','火':'土','土':'金'};
+var KE    ={'金':'木','木':'土','土':'水','水':'火','火':'金'};
+var HETU  ={'水':'1、6','火':'2、7','木':'3、8','金':'4、9','土':'5、10'};
+var LIUHE =[1,0,11,10,9,8,7,6,5,4,3,2];   // 六合：子丑 寅亥 卯戌 辰酉 巳申 午未
+
+function triIdx(l){
+  for(var i=0;i<8;i++){ var t=TRI[i].l; if(t[0]===l[0]&&t[1]===l[1]&&t[2]===l[2]) return i; }
+  return 0;
+}
+// 體用生剋（梅花易數斷法）
+function tiYong(ti,yong){
+  if(SHENG[yong]===ti) return {k:'用生體', j:2,  txt:'大吉'};
+  if(KE[ti]===yong)    return {k:'體剋用', j:1,  txt:'吉'};
+  if(ti===yong)        return {k:'比和',   j:1,  txt:'吉'};
+  if(SHENG[ti]===yong) return {k:'體生用', j:-1, txt:'小凶'};
+  if(KE[yong]===ti)    return {k:'用剋體', j:-2, txt:'凶'};
+  return {k:'—', j:0, txt:'平'};
+}
+// 以牌路起卦：最近六局，莊為陽爻、閒為陰爻，初爻最早；動爻以總局數定
+function castGua(seq,total){
+  if(seq.length<6) return null;
+  var lines=[], i, n=seq.length;
+  for(i=0;i<6;i++) lines.push(seq[n-6+i]==='B'?1:0);
+  var lo=triIdx(lines.slice(0,3)), up=triIdx(lines.slice(3,6));
+  var dong=(total%6)+1;
+  var yongLower = dong<=3;                       // 動爻所在為用卦
+  var ti  = yongLower ? TRI[up].e : TRI[lo].e;
+  var yong= yongLower ? TRI[lo].e : TRI[up].e;
+  var zl=lines.slice(); zl[dong-1]=zl[dong-1]?0:1;
+  return {
+    lines:lines, zlines:zl, lo:lo, up:up, dong:dong,
+    ti:ti, yong:yong, tiUpper:yongLower, v:tiYong(ti,yong),
+    name:GUA64[up][lo], zname:GUA64[triIdx(zl.slice(3,6))][triIdx(zl.slice(0,3))]
+  };
+}
+// 日干支：1900-01-01 為甲戌日
+function ganzhiDay(d){
+  var days=Math.round((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(1900,0,1))/86400000);
+  var idx=(((days+10)%60)+60)%60;
+  return {idx:idx, gi:idx%10, zi:idx%12, gan:GAN[idx%10], zhi:ZHI[idx%12]};
+}
+function shichen(d){
+  var i=Math.floor(((d.getHours()+1)%24)/2);
+  return {i:i, zhi:ZHI[i], e:ZHI_E[i]};
+}
+// 莊屬火（紅）、閒屬水（藍）：看局辰五行生剋誰
+function wuxingScore(e){
+  var sB=0,sP=0;
+  if(SHENG[e]==='火') sB+=2;
+  if(e==='火')        sB+=2;
+  if(KE[e]==='水')    sB+=1;
+  if(SHENG[e]==='水') sP+=2;
+  if(e==='水')        sP+=2;
+  if(KE[e]==='火')    sP+=1;
+  return {B:sB, P:sP};
+}
+
+/* ==========================================================================
    3. 策略
    ========================================================================== */
 function dirichlet(cB,cP,strength){
@@ -208,6 +296,28 @@ var STRATS=[
       var r=sig(pB,0.85); r.note='列長 '+L; return r;
     } }
 ];
+for(var _i=0;_i<STRATS.length;_i++) STRATS[_i].school='sci';
+
+/* ---- 玄學組：同樣要交出命中率 ---- */
+STRATS.push(
+  { id:'gua', name:'梅花易數', desc:'牌路起卦・體用生剋', w:1.3, school:'myst',
+    fn:function(ctx){
+      var g=castGua(ctx.seq, ctx.total);
+      if(!g || g.v.j===0) return null;
+      var last=ctx.seq[ctx.seq.length-1];
+      var pick = g.v.j>0 ? last : other(last);      // 吉則順勢，凶則反勢
+      return {pick:pick, str: clamp(Math.abs(g.v.j)/2,0,1)*0.55, note:g.name+'‧'+g.v.txt};
+    } },
+  { id:'wuxing', name:'五行生剋', desc:'局辰旺莊火或閒水', w:1.1, school:'myst',
+    fn:function(ctx){
+      if(ctx.seq.length<4) return null;
+      var zi=ctx.total%12, e=ZHI_E[zi], w=wuxingScore(e);
+      if(w.B===w.P) return null;
+      return {pick: w.B>w.P?'B':'P', str: clamp(Math.abs(w.B-w.P)/4,0,1)*0.5,
+              note: ZHI[zi]+'辰‧'+e+(SHENG[e]?('生'+SHENG[e]):'') };
+    } }
+);
+var USE_MYST=true;   // 玄學是否參與綜合投票
 
 /* ==========================================================================
    4. 引擎：對整靴做因果推演，同時累計每個策略的實測命中
@@ -217,11 +327,12 @@ function runEngine(hands){
   var stat={}, i, s;
   for(i=0;i<STRATS.length;i++) stat[STRATS[i].id]={c:0,n:0};
   var en={c:0,n:0,pl:0,ev:0};
+  var total=0;
   var history=[];   // 每一局的判斷紀錄
   var lastVotes=null, lastEns=null;
 
   function step(){
-    var ctx={seq:seq, runs:runs, runRes:runRes};
+    var ctx={seq:seq, runs:runs, runRes:runRes, total:total};
     var votes=[], totW=0, signed=0;
     for(var j=0;j<STRATS.length;j++){
       var st=STRATS[j], v=null;
@@ -229,7 +340,7 @@ function runEngine(hands){
       var acc = stat[st.id].n>=6 ? stat[st.id].c/stat[st.id].n : 0.5;
       var adapt = stat[st.id].n>=6 ? clamp(1+3*(acc-0.5),0.35,2.2) : 1;
       var w = st.w*adapt;
-      if(v){ totW+=w; signed += w*v.str*(v.pick==='B'?1:-1); }
+      if(v && (USE_MYST || st.school!=='myst')){ totW+=w; signed += w*v.str*(v.pick==='B'?1:-1); }
       votes.push({st:st, v:v, w:w, acc:acc, n:stat[st.id].n, c:stat[st.id].c});
     }
     var raw = totW>0 ? signed/totW : 0;
@@ -240,6 +351,7 @@ function runEngine(hands){
 
   for(i=0;i<hands.length;i++){
     var h=hands[i];
+    total=i;
     var r=step();
     if(h.r!=='T'){
       for(var j=0;j<r.votes.length;j++){
@@ -260,6 +372,7 @@ function runEngine(hands){
       seq.push(h.r);
     }
   }
+  total=hands.length;
   var fin=step();
   return {votes:fin.votes, ens:fin.ens, stat:stat, en:en, history:history, seq:seq, runs:runs, runRes:runRes};
 }
@@ -388,7 +501,8 @@ function renderPredict(R){
     var accTxt = vt.n>0 ? (vt.c+'/'+vt.n+'　'+pct(vt.c/vt.n,0)) : '—';
     var accCls = (vt.n>=6 && vt.c/vt.n>0.5) ? 'acc up' : 'acc dn';
     var strTxt = v ? Math.round(v.str*100) : 0;
-    rows+='<tr><td><span class="sname">'+st.name+'</span><span class="sdesc">'+
+    rows+='<tr><td><span class="sname">'+st.name+
+      '<span class="school '+st.school+'">'+(st.school==='sci'?'科學':'神學')+'</span></span><span class="sdesc">'+
       (v&&v.note?v.note:st.desc)+'</span></td>'+
       '<td>'+chip+'</td>'+
       '<td><span class="wbar"><i style="width:'+clamp(strTxt*1.8,3,100)+'%"></i></span></td>'+
@@ -512,7 +626,7 @@ function backtest(nShoes, betKey, unit, bank0, onDone, onTick){
       var local={}; for(i=0;i<STRATS.length;i++) local[STRATS[i].id]={c:0,n:0};
       for(var hi=0;hi<sh.length;hi++){
         var h=sh[hi];
-        var ctx={seq:seq,runs:runs,runRes:runRes};
+        var ctx={seq:seq,runs:runs,runRes:runRes,total:hi};
         var totW=0, signed=0, vs=[];
         for(var j=0;j<STRATS.length;j++){
           var st=STRATS[j], v=null;
@@ -520,7 +634,7 @@ function backtest(nShoes, betKey, unit, bank0, onDone, onTick){
           var acc=local[st.id].n>=6?local[st.id].c/local[st.id].n:0.5;
           var adapt=local[st.id].n>=6?clamp(1+3*(acc-0.5),0.35,2.2):1;
           var w=st.w*adapt;
-          if(v){ totW+=w; signed+=w*v.str*(v.pick==='B'?1:-1); }
+          if(v && (USE_MYST || st.school!=='myst')){ totW+=w; signed+=w*v.str*(v.pick==='B'?1:-1); }
           vs.push(v);
         }
         var pick = totW>0 ? (0.5+signed/totW*0.9>=0.5?'B':'P') : null;
@@ -592,6 +706,167 @@ function drawCurve(res){
 }
 
 /* ==========================================================================
+   8.5 玄學面板
+   ========================================================================== */
+var WX=[
+  {n:'火', c:'var(--banker)', tag:'莊'},
+  {n:'土', c:'#A8802A', tag:''},
+  {n:'金', c:'#8A939B', tag:''},
+  {n:'水', c:'var(--player)', tag:'閒'},
+  {n:'木', c:'#2E7D5B', tag:''}
+];
+function wxSvg(active){
+  var cx=74, cy=74, R=48, nr=14, pts=[], i;
+  for(i=0;i<5;i++){
+    var a=(-90+72*i)*Math.PI/180;
+    pts.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]);
+  }
+  var g='<svg viewBox="0 0 148 148" width="148" height="148" role="img" aria-label="五行生剋圖">';
+  var line=getComputedStyle(document.documentElement).getPropertyValue('--line-2').trim();
+  for(i=0;i<5;i++){                                   // 相剋：內星虛線
+    var a=pts[i], b=pts[(i+2)%5];
+    g+='<line x1="'+a[0].toFixed(1)+'" y1="'+a[1].toFixed(1)+'" x2="'+b[0].toFixed(1)+
+       '" y2="'+b[1].toFixed(1)+'" stroke="'+line+'" stroke-width="1" stroke-dasharray="3 3"/>';
+  }
+  for(i=0;i<5;i++){                                   // 相生：外圈實線
+    var a2=pts[i], b2=pts[(i+1)%5];
+    g+='<line x1="'+a2[0].toFixed(1)+'" y1="'+a2[1].toFixed(1)+'" x2="'+b2[0].toFixed(1)+
+       '" y2="'+b2[1].toFixed(1)+'" stroke="'+line+'" stroke-width="1.6"/>';
+  }
+  for(i=0;i<5;i++){
+    var on = WX[i].n===active;
+    g+='<circle cx="'+pts[i][0].toFixed(1)+'" cy="'+pts[i][1].toFixed(1)+'" r="'+(on?nr+3:nr)+
+       '" fill="'+WX[i].c+'" opacity="'+(on?1:0.28)+'"/>';
+    if(on) g+='<circle cx="'+pts[i][0].toFixed(1)+'" cy="'+pts[i][1].toFixed(1)+'" r="'+(nr+7)+
+       '" fill="none" stroke="'+WX[i].c+'" stroke-width="1.5" opacity=".5"/>';
+    g+='<text x="'+pts[i][0].toFixed(1)+'" y="'+(pts[i][1]+4.5).toFixed(1)+
+       '" text-anchor="middle" font-size="14" font-weight="700" fill="#fff" opacity="'+(on?1:0.75)+
+       '" font-family="system-ui,sans-serif">'+WX[i].n+'</text>';
+  }
+  return g+'</svg>';
+}
+function guaHTML(lines, dong, dim){
+  var h='<div class="gua'+(dim?' zhi':'')+'">', i;
+  for(i=5;i>=0;i--){                                  // 由上而下顯示，上爻在最上
+    var isDong = (!dim && (i+1)===dong);
+    h+='<div class="yao'+(isDong?' dong':'')+'">';
+    h+= lines[i] ? '<i></i>' : '<i></i><i></i>';
+    h+='</div>';
+  }
+  return h+'</div>';
+}
+function renderMyst(R){
+  var total=state.hands.length;
+
+  /* --- 牌路卦 --- */
+  var g=castGua(R.seq, total);
+  var box=$('#guaBox');
+  if(!g){
+    box.innerHTML='<p class="hint" style="margin:0">還差 '+(6-R.seq.length)+
+      ' 局（莊閒，不計和局）就能起卦。莊為陽爻、閒為陰爻，初爻在下。</p>';
+  }else{
+    var up=TRI[g.up], lo=TRI[g.lo];
+    var cls = g.v.j>0 ? 'good' : (g.v.j<0 ? 'bad' : '');
+    var last=R.seq[R.seq.length-1];
+    var act = g.v.j>0 ? ('順勢跟'+CH[last]) : (g.v.j<0 ? ('逆勢押'+CH[other(last)]+'，或宜靜不宜動') : '無明顯偏向');
+    box.innerHTML=
+      '<div class="gua-row">'+
+        guaHTML(g.lines, g.dong, false)+
+        '<div class="gua-arrow">→</div>'+
+        guaHTML(g.zlines, 0, true)+
+        '<div class="gua-meta">'+
+          '<div class="gua-name">'+g.name+'</div>'+
+          '<div class="gua-sub">動'+['初','二','三','四','五','上'][g.dong-1]+'爻　之　'+g.zname+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="gua-tri">'+
+        '<span class="trigram"><span class="sym">'+up.s+'</span><b>上'+up.n+'</b>'+up.img+'‧'+up.e+
+          (g.tiUpper?'（體）':'（用）')+'</span>'+
+        '<span class="trigram"><span class="sym">'+lo.s+'</span><b>下'+lo.n+'</b>'+lo.img+'‧'+lo.e+
+          (g.tiUpper?'（用）':'（體）')+'</span>'+
+      '</div>'+
+      '<div class="verdict '+cls+'">'+
+        '<span class="jud">'+g.v.txt+'</span>'+
+        '<span class="txt"><b>'+g.v.k+'</b>　體'+g.ti+'・用'+g.yong+'<br>'+act+'</span>'+
+      '</div>';
+  }
+
+  /* --- 五行局勢 --- */
+  var zi=total%12, e=ZHI_E[zi], w=wuxingScore(e);
+  $('#wxSvg').innerHTML=wxSvg(e);
+  var rel = SHENG[e]==='火' ? (e+'生火，旺莊') : SHENG[e]==='水' ? (e+'生水，旺閒') :
+            e==='火' ? '火火比和，旺莊' : e==='水' ? '水水比和，旺閒' :
+            KE[e]==='水' ? (e+'剋水，閒受制') : KE[e]==='火' ? (e+'剋火，莊受制') : '五行平和';
+  $('#wxText').innerHTML=
+    '第 <b>'+(total+1)+'</b> 局　局辰 <b>'+ZHI[zi]+'</b>　五行屬 <b>'+e+'</b><br>'+
+    rel+'<br><span style="color:var(--ink-3)">莊屬火（紅）　閒屬水（藍）</span>';
+  var wb=w.B+0.5, wp=w.P+0.5, tw=wb+wp;      // 留底寬，0 分的一邊也看得見
+  $('#wxBar').innerHTML=
+    '<div class="b" style="flex-basis:'+(wb/tw*100)+'%">莊火 '+w.B+'</div>'+
+    '<div class="p" style="flex-basis:'+(wp/tw*100)+'%">閒水 '+w.P+'</div>';
+
+  /* --- 今日時空 --- */
+  var now=new Date(), gz=ganzhiDay(now), sc=shichen(now);
+  var chong=ZODIAC[(gz.zi+6)%12];
+  $('#timeKv').innerHTML=
+    '<dt>日干支</dt><dd><b>'+gz.gan+gz.zhi+'</b>日</dd>'+
+    '<dt>目前時辰</dt><dd><b>'+sc.zhi+'</b>時　'+sc.e+'</dd>'+
+    '<dt>財神方位</dt><dd><b>'+CAIWEI[gz.gi]+'</b></dd>'+
+    '<dt>本日沖</dt><dd>沖<b>'+chong+'</b>　屬'+chong+'者宜避</dd>'+
+    '<dt>牌桌五行</dt><dd>莊火・閒水　<span style="color:var(--ink-3)">水火既濟</span></dd>';
+
+  /* --- 生肖時運 --- */
+  var z=parseInt($('#zodiacSel').value,10);
+  var fb=$('#fortBox');
+  if(z<0){
+    fb.innerHTML='<p class="hint" style="margin:0">選了生肖之後，這裡會算今日沖合與幸運數。</p>';
+  }else{
+    var isChong=((z+6)%12)===gz.zi, isHe=LIUHE[gz.zi]===z, isSame=z===gz.zi;
+    var sco=50+(isHe?25:0)-(isChong?28:0)+(isSame?10:0)+((gz.idx*7+z*13)%19-9);
+    sco=clamp(sco,5,95);
+    var col = sco>=60?'var(--tie)':(sco>=40?'var(--ink-2)':'var(--banker)');
+    var judge = isChong?'今日沖你，宜靜不宜動':(isHe?'今日六合，心緒安穩':(isSame?'值年同支，平常心':'平日'));
+    fb.innerHTML=
+      '<div class="kv">'+
+        '<dt>今日運勢</dt><dd><b style="color:'+col+'">'+sco+'</b> / 100</dd>'+
+      '</div>'+
+      '<div class="fort"><i style="width:'+sco+'%;background:'+col+'"></i></div>'+
+      '<div class="kv" style="margin-top:11px">'+
+        '<dt>斷語</dt><dd>'+judge+'</dd>'+
+        '<dt>幸運數</dt><dd><b>'+HETU[ZHI_E[z]]+'</b></dd>'+
+        '<dt>宜坐方位</dt><dd><b>'+CAIWEI[gz.gi]+'</b></dd>'+
+      '</div>'+
+      '<p class="hint" style="margin:12px 0 0">這一欄不進投票、不影響任何機率，也不會被回測。'+
+      '它存在的意義是給你一個<b>該不該上桌</b>的儀式性判斷 — 而那個判斷唯一能改善的，是你今天輸多少。</p>';
+  }
+
+  /* --- 玄學紀律 --- */
+  var bad = (g && g.v.j<0) || (z>=0 && ((z+6)%12)===gz.zi);
+  $('#ruleBox').innerHTML=
+    '<div class="rule key"><span class="ic">止</span><span class="bd"><b>觀望是唯一不輸的一手</b>'+
+      '<span>不下注的期望值是 0，押莊是 −1.06%。'+(bad?'今天卦象與生肖都在勸你收手。':'卦象未見大凶，但這條規則永遠成立。')+'</span></span></div>'+
+    '<div class="rule"><span class="ic">盈</span><span class="bd"><b>贏三成就走</b>'+
+      '<span>設定本金的 +30% 為止盈線，到了就離桌。神明給的要接得住。</span></span></div>'+
+    '<div class="rule"><span class="ic">損</span><span class="bd"><b>輸兩成必停</b>'+
+      '<span>本金 −20% 為止損線。運勢不會因為你多坐兩小時就翻轉。</span></span></div>'+
+    '<div class="rule"><span class="ic">追</span><span class="bd"><b>連輸三局，停一輪</b>'+
+      '<span>倍投法在回測裡是最快歸零的一種。可以去回測頁選馬丁格爾自己看。</span></span></div>'+
+    '<div class="rule"><span class="ic">注</span><span class="bd"><b>單注不超過本金 2%</b>'+
+      '<span>注碼越小，撐過波動的機會越大。這是唯一能被數學支持的「改運」方式。</span></span></div>';
+
+  /* --- 科學 vs 神學 --- */
+  var sci={c:0,n:0}, my={c:0,n:0};
+  for(var i=0;i<STRATS.length;i++){
+    var t = STRATS[i].school==='sci' ? sci : my, st=R.stat[STRATS[i].id];
+    t.c+=st.c; t.n+=st.n;
+  }
+  $('#vsSci').textContent  = sci.n?pct(sci.c/sci.n,1):'—';
+  $('#vsMyst').textContent = my.n?pct(my.c/my.n,1):'—';
+  $('#vsSciN').textContent  = '8 個策略・'+sci.n+' 次判斷';
+  $('#vsMystN').textContent = '2 個策略・'+my.n+' 次判斷';
+}
+
+/* ==========================================================================
    9. 主流程與事件
    ========================================================================== */
 var lastR=null;
@@ -600,6 +875,7 @@ function render(){
   renderPredict(lastR);
   renderRoads();
   renderStats(lastR);
+  try{ renderMyst(lastR); }catch(e){}
   save();
 }
 var projTimer=null;
@@ -722,7 +998,8 @@ $('#btnSim').addEventListener('click', function(){
     for(var i=0;i<STRATS.length;i++){
       var st=STRATS[i], s=res.stat[st.id];
       var a=s.n?s.c/s.n:0;
-      rows+='<tr><td>'+st.name+'</td><td>'+s.n.toLocaleString()+'</td><td>'+(s.n?pct(a,2):'—')+
+      rows+='<tr><td>'+st.name+'<span class="school '+st.school+'">'+
+        (st.school==='sci'?'科':'神')+'</span></td><td>'+s.n.toLocaleString()+'</td><td>'+(s.n?pct(a,2):'—')+
         '</td><td class="'+(s.pl>=0?'pos':'neg')+'">'+(s.pl>0?'+':'')+Math.round(s.pl).toLocaleString()+'</td></tr>';
     }
     rows+='<tr class="hi"><td>綜合建議</td><td>'+res.en.n.toLocaleString()+'</td><td>'+
@@ -733,6 +1010,29 @@ $('#btnSim').addEventListener('click', function(){
     btn.textContent='回測中… '+Math.round(p*100)+'%';
   });
 });
+
+/* 玄學 */
+(function(){
+  var sel=$('#zodiacSel');
+  for(var i=0;i<12;i++){
+    var o=document.createElement('option');
+    o.value=i; o.textContent=ZODIAC[i]+'（'+ZHI[i]+'）';
+    sel.appendChild(o);
+  }
+  try{ var sv=localStorage.getItem('bacc.zodiac'); if(sv!==null) sel.value=sv; }catch(e){}
+  sel.addEventListener('change', function(){
+    try{ localStorage.setItem('bacc.zodiac', this.value); }catch(e){}
+    renderMyst(lastR);
+  });
+  var sw=$('#mystOn');
+  try{ var mv=localStorage.getItem('bacc.myst'); if(mv==='0'){ sw.checked=false; USE_MYST=false; } }catch(e){}
+  sw.addEventListener('change', function(){
+    USE_MYST=this.checked;
+    try{ localStorage.setItem('bacc.myst', this.checked?'1':'0'); }catch(e){}
+    render();
+    toast(this.checked?'玄學已加入投票':'綜合建議只採統計組');
+  });
+})();
 
 /* 設定 */
 function setTheme(v){

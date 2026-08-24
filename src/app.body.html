@@ -13,6 +13,7 @@
   <nav class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="predict">預測</button>
     <button role="tab" aria-selected="false" data-tab="roads">路單</button>
+    <button role="tab" aria-selected="false" data-tab="myst">玄學</button>
     <button role="tab" aria-selected="false" data-tab="stats">統計</button>
     <button role="tab" aria-selected="false" data-tab="sim">回測</button>
     <button role="tab" aria-selected="false" data-tab="about">說明</button>
@@ -105,6 +106,71 @@
         </div>
         <p class="hint" style="margin:12px 0 0">
           「問路」＝把莊、閒各假設一次填進大路，看三條下三路各自變紅或藍。紅多的那一邊，就是傳統上說的「順路」。
+        </p>
+      </div>
+    </section>
+
+
+    <!-- ============ 玄學 ============ -->
+    <section class="panel" id="p-myst">
+      <div class="card">
+        <h2>牌路卦 <span class="tag">梅花易數・體用生剋</span></h2>
+        <div id="guaBox">
+          <p class="hint" style="margin:0">滿六局起卦。莊為陽爻、閒為陰爻，初爻在下。</p>
+        </div>
+        <div class="switch">
+          <label for="mystOn">玄學參與綜合投票
+            <span>關掉的話，預測頁只採用統計組的八個策略</span></label>
+          <input type="checkbox" id="mystOn" checked>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>五行局勢 <span class="tag">莊屬火・閒屬水</span></h2>
+        <div class="wx-row">
+          <div class="wx-svg" id="wxSvg"></div>
+          <div class="wx-legend" id="wxText"></div>
+        </div>
+        <div class="wx-bar" id="wxBar"></div>
+        <p class="hint" style="margin:10px 0 0">
+          外圈實線為相生，內星虛線為相剋。局辰逐局推移，一局進一辰。
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>今日時空</h2>
+        <dl class="kv" id="timeKv"></dl>
+      </div>
+
+      <div class="card">
+        <h2>生肖時運 <span class="tag">不進投票</span></h2>
+        <div class="row" style="margin-bottom:12px">
+          <div class="field"><label>你的生肖</label>
+            <select id="zodiacSel">
+              <option value="-1">未設定</option>
+            </select>
+          </div>
+        </div>
+        <div id="fortBox"><p class="hint" style="margin:0">選了生肖之後，這裡會算今日沖合與幸運數。</p></div>
+      </div>
+
+      <div class="card">
+        <h2>玄學紀律 <span class="tag">這一段是真的有用</span></h2>
+        <div id="ruleBox"></div>
+      </div>
+
+      <div class="card">
+        <h2>科學 ⟷ 神學 <span class="tag" id="vsTag">本靴實測</span></h2>
+        <div class="vs">
+          <div class="side"><div class="k">科學組</div><div class="v" id="vsSci">—</div>
+            <div class="n" id="vsSciN">8 個策略</div></div>
+          <div class="mid">vs</div>
+          <div class="side"><div class="k">神學組</div><div class="v" id="vsMyst">—</div>
+            <div class="n" id="vsMystN">2 個策略</div></div>
+        </div>
+        <p class="hint" style="margin:13px 0 0" id="vsNote">
+          兩組跑在同一副牌、同一套規則上。想看長期結果，去回測頁跑 500 靴 —
+          兩邊都會停在 50% 附近，誰也贏不了誰。
         </p>
       </div>
     </section>
@@ -233,6 +299,21 @@
         <p class="hint" style="margin:11px 0 0">
           綜合建議＝八組加權投票，權重會隨各策略在本靴的實測命中率上下調整。這是誠實的做法，但改變不了期望值。
         </p>
+      </div>
+      <div class="card">
+        <h2>科學與神學</h2>
+        <ul class="plain">
+          <li>玄學組不是裝飾。<b>梅花易數</b>以最近六局起卦（莊陽閒陰、初爻最早），以總局數定動爻，
+            再依體用生剋斷吉凶；<b>五行生剋</b>以局辰五行判莊火閒水誰旺。兩者都是可重現的推算，
+            同樣的牌路必定起出同樣的卦。</li>
+          <li>所以它們能跟統計組跑在<b>同一套回測</b>上，接受同一把尺的檢驗。</li>
+          <li>六百靴、每組四萬局的實測結果：<b>科學組 50.4%、神學組 50.3%</b>。
+            誰也沒贏誰，因為兩邊面對的都是同一件事 — 每局獨立、莊家抽水。</li>
+          <li>那玄學還有什麼用？<b>它給你一個收手的理由。</b>卦象凶、今日沖生肖、時辰不對 —
+            這些話術背後對應的動作是「不下注」。而不下注的期望值是 <b>0</b>，
+            比場上任何一手都好。這是全場唯一數學上站得住腳的優勢。</li>
+          <li>科學負責量，神學負責止。兩個都用上，才叫善用。</li>
+        </ul>
       </div>
       <div class="card">
         <h2>設定</h2>
