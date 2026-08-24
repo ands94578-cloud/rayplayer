@@ -1,0 +1,286 @@
+<div class="app">
+  <header class="topbar">
+    <div class="logo">百</div>
+    <div class="brand">
+      <h1>路單推演台</h1>
+      <p>Baccarat Road Engine</p>
+    </div>
+    <span class="spacer"></span>
+    <button class="gbtn" id="btnPaste">貼上牌路</button>
+    <button class="gbtn" id="btnNew">新靴</button>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="predict">預測</button>
+    <button role="tab" aria-selected="false" data-tab="roads">路單</button>
+    <button role="tab" aria-selected="false" data-tab="stats">統計</button>
+    <button role="tab" aria-selected="false" data-tab="sim">回測</button>
+    <button role="tab" aria-selected="false" data-tab="about">說明</button>
+  </nav>
+
+  <main>
+    <!-- ============ 預測 ============ -->
+    <section class="panel on" id="p-predict">
+      <div class="hero">
+        <div class="hero-top">
+          <div class="pick NA" id="pickBadge">待輸入</div>
+          <div class="pick-meta">
+            <div class="lab">下一局綜合建議</div>
+            <div class="conf" id="confVal">—<small id="confUnit"></small></div>
+            <div class="why" id="whyText">先按下方按鈕輸入已開出的結果，至少 3 局後開始出訊號。</div>
+          </div>
+        </div>
+        <div class="split" id="splitBar">
+          <div class="sb" style="flex-basis:45.9%">莊</div>
+          <div class="sp" style="flex-basis:44.6%">閒</div>
+          <div class="st" style="flex-basis:9.5%">和</div>
+        </div>
+        <div class="edge-note" id="edgeNote">
+          目前顯示的是<b>八副牌理論機率</b>。輸入結果後，八組策略會即時投票並各自累計命中率。
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>策略投票 <span class="tag" id="votePace">本靴 0 局</span></h2>
+        <div class="tblwrap">
+          <table class="strat" id="stratTable"><tbody></tbody></table>
+        </div>
+        <p class="hint" style="margin:11px 0 0">
+          「命中」欄是各策略在<b>這一靴</b>的實測結果（只算莊閒、和局跳過）。權重會依實測命中率動態調整，
+          命中率長期都會回到 50% 附近 — 這正是要讓你親眼看到的東西。
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>本靴續推 <span class="tag" id="projTag">蒙地卡羅 3000 次</span></h2>
+        <div id="projBox">
+          <div class="stats" style="grid-template-columns:repeat(3,1fr); margin-bottom:12px">
+            <div class="stat"><div class="k">剩餘局數</div><div class="v num" id="pjHands">—</div></div>
+            <div class="stat b"><div class="k">預期莊</div><div class="v num" id="pjB">—</div></div>
+            <div class="stat p"><div class="k">預期閒</div><div class="v num" id="pjP">—</div></div>
+          </div>
+          <div class="lab" style="font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px">
+            後續 12 局的莊勝率（模擬統計）
+          </div>
+          <div class="proj" id="projBars"></div>
+          <div class="proj lbl" id="projLbls"></div>
+          <p class="hint" style="margin:12px 0 0">
+            每根柱都貼在 <b>50.7%</b> 附近 — 因為每局是獨立事件，牌路無法改變下一局的機率。
+            按下方按鈕可看一種隨機推演（只是眾多可能之一，不是預言）。
+          </p>
+          <button class="outline" id="btnRoll" style="width:100%;margin-top:10px">推演一種可能的走勢</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 路單 ============ -->
+    <section class="panel" id="p-roads">
+      <div class="card">
+        <div class="roadblock">
+          <div class="roadhead"><h3>珠盤路</h3><span>Bead Plate</span><span class="rt" id="beadCount">0 局</span></div>
+          <div class="roadwrap" id="w-bead"><div class="grid" id="g-bead"></div></div>
+        </div>
+        <div class="roadblock">
+          <div class="roadhead"><h3>大路</h3><span>Big Road</span><span class="rt" id="bigCount">0 列</span></div>
+          <div class="roadwrap" id="w-big"><div class="grid" id="g-big"></div></div>
+          <div class="legend">
+            <span><b>圈</b> 莊紅 / 閒藍</span><span><b>綠斜線</b> 和局次數</span>
+            <span><b>角點</b> 莊對 / 閒對</span><span><b>淡色</b> 推演</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>下三路 <span class="tag">紅＝路整齊　藍＝路亂</span></h2>
+        <div class="roadblock">
+          <div class="roadhead"><h3>大眼仔</h3><span>Big Eye Boy</span><span class="rt" id="beyeAsk"></span></div>
+          <div class="roadwrap" id="w-beye"><div class="grid" id="g-beye"></div></div>
+        </div>
+        <div class="roadblock">
+          <div class="roadhead"><h3>小路</h3><span>Small Road</span><span class="rt" id="smallAsk"></span></div>
+          <div class="roadwrap" id="w-small"><div class="grid" id="g-small"></div></div>
+        </div>
+        <div class="roadblock">
+          <div class="roadhead"><h3>曱甴路</h3><span>Cockroach Pig</span><span class="rt" id="roachAsk"></span></div>
+          <div class="roadwrap" id="w-roach"><div class="grid" id="g-roach"></div></div>
+        </div>
+        <p class="hint" style="margin:12px 0 0">
+          「問路」＝把莊、閒各假設一次填進大路，看三條下三路各自變紅或藍。紅多的那一邊，就是傳統上說的「順路」。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 統計 ============ -->
+    <section class="panel" id="p-stats">
+      <div class="card">
+        <h2>本靴分佈</h2>
+        <div class="stats">
+          <div class="stat b"><div class="k">莊</div><div class="v num" id="stB">0<small id="stBp">0%</small></div></div>
+          <div class="stat p"><div class="k">閒</div><div class="v num" id="stP">0<small id="stPp">0%</small></div></div>
+          <div class="stat t"><div class="k">和</div><div class="v num" id="stT">0<small id="stTp">0%</small></div></div>
+          <div class="stat"><div class="k">最長連</div><div class="v num" id="stStreak">0</div></div>
+          <div class="stat"><div class="k">單跳率</div><div class="v num" id="stChop">—</div></div>
+          <div class="stat"><div class="k">莊對/閒對</div><div class="v num" id="stPairs">0/0</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>綜合訊號實測</h2>
+        <div class="stats" style="grid-template-columns:repeat(2,1fr)">
+          <div class="stat"><div class="k">已判局數</div><div class="v num" id="enN">0</div></div>
+          <div class="stat"><div class="k">命中率</div><div class="v num" id="enAcc">—</div></div>
+          <div class="stat"><div class="k">平注淨利</div><div class="v num" id="enPL">0<small>單位</small></div></div>
+          <div class="stat"><div class="k">理論期望</div><div class="v num" id="enEV">0<small>單位</small></div></div>
+        </div>
+        <p class="hint" style="margin:11px 0 0">
+          平注淨利＝每局照綜合建議下 1 單位（莊贏賠 0.95、和局退還）。理論期望＝同樣局數下的數學期望值。
+          兩者的差距就是運氣，不是準度。
+        </p>
+      </div>
+      <div class="card">
+        <h2>大路列型分佈</h2>
+        <div class="tblwrap"><table class="sim" id="colDist"><tbody></tbody></table></div>
+      </div>
+      <div class="card">
+        <h2>牌路字串 <span class="tag">可複製給我看</span></h2>
+        <textarea id="exportBox" rows="4" readonly></textarea>
+        <div class="row" style="margin-top:9px">
+          <button class="outline" id="btnCopy" style="flex:1">複製</button>
+          <button class="outline" id="btnUndoAll" style="flex:1">清空本靴</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 回測 ============ -->
+    <section class="panel" id="p-sim">
+      <div class="card">
+        <h2>牌靴回測 <span class="tag">真實補牌規則</span></h2>
+        <p class="hint" style="margin:-4px 0 13px">
+          用 8 副牌完整模擬整靴（含補牌規則、切牌），讓每個策略把每一靴從頭跑到尾，統計真實命中率與盈虧。
+        </p>
+        <div class="row">
+          <div class="field">
+            <label>模擬靴數</label>
+            <select id="simShoes">
+              <option value="50">50 靴</option>
+              <option value="200" selected>200 靴</option>
+              <option value="500">500 靴</option>
+              <option value="1000">1000 靴</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>投注法</label>
+            <select id="simBet">
+              <option value="flat" selected>平注</option>
+              <option value="martin">馬丁格爾（倍投）</option>
+              <option value="dalem">達朗貝爾</option>
+              <option value="paroli">逆纜 1-2-4</option>
+              <option value="1326">1-3-2-6</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <div class="field"><label>基本注碼</label><input type="number" id="simUnit" value="100" min="1" step="10"></div>
+          <div class="field"><label>起始本金</label><input type="number" id="simBank" value="10000" min="100" step="500"></div>
+        </div>
+        <button class="solid" id="btnSim">開始回測</button>
+        <div id="simOut" style="display:none">
+          <div class="stats" style="grid-template-columns:repeat(2,1fr); margin-top:14px">
+            <div class="stat"><div class="k">總局數</div><div class="v num" id="rsN">—</div></div>
+            <div class="stat"><div class="k">綜合命中率</div><div class="v num" id="rsAcc">—</div></div>
+            <div class="stat"><div class="k">累計盈虧</div><div class="v num" id="rsBank">—</div></div>
+            <div class="stat"><div class="k">本金歸零</div><div class="v num" id="rsBust">—</div></div>
+          </div>
+          <div style="margin-top:12px"><canvas id="bankChart" width="900" height="300"></canvas></div>
+          <p class="hint" style="margin:7px 0 0" id="chartCap"></p>
+          <h2 style="margin-top:18px">各策略成績</h2>
+          <div class="tblwrap"><table class="sim" id="simTable"><thead><tr>
+            <th>策略</th><th>局數</th><th>命中率</th><th>盈虧<small>／單位</small></th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 說明 ============ -->
+    <section class="panel" id="p-about">
+      <div class="card">
+        <h2>先看這個</h2>
+        <ul class="plain">
+          <li>八副牌的百家樂，每一局的結果<b>與前面所有局無關</b>。牌張消耗造成的偏移小於 0.1%，遠不足以翻轉莊家優勢。</li>
+          <li>莊家優勢固定：押莊 <b>−1.06%</b>、押閒 <b>−1.24%</b>、押和 <b>−14.4%</b>。任何路單、纜法、AI 都改不了這三個數字。</li>
+          <li>所以這個工具的定位是<b>記錄與推演</b>：幫你把路單記清楚、把每種打法的真實命中率算給你看，而不是假裝能預知結果。</li>
+          <li>回測頁跑個 500 靴你就會看到：八組策略的命中率全部收斂在 50% 上下，任何投注法的長期盈虧都是負的。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>怎麼用</h2>
+        <ul class="plain">
+          <li><b>輸入</b>：底部三顆大按鈕，開什麼按什麼。開牌前先點「莊對／閒對」再按結果，就會記錄對子。</li>
+          <li><b>貼上牌路</b>：右上角。支援 <span class="num">BPPBT</span>、<span class="num">莊閒閒莊和</span>、<span class="num">庄闲</span>、<span class="num">bpt</span>、逗號或空白分隔都可以。</li>
+          <li><b>拍照給我</b>：把賭桌上的電子路單拍下來傳給我，我幫你轉成字串，你貼進來就還原整靴。</li>
+          <li><b>自動保存</b>：資料存在這台手機的瀏覽器裡，關掉再開還在。按「新靴」開下一靴。</li>
+          <li><b>加到主畫面</b>：iPhone 用 Safari 開 → 分享 → 加入主畫面，就跟 App 一樣。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>八組策略在算什麼</h2>
+        <ul class="plain">
+          <li><b>理論基準</b> — 八副牌的固定機率，永遠站莊（除去和局後莊佔 50.68%）。</li>
+          <li><b>一階／二階馬可夫</b> — 統計本靴「上一局／上兩局是什麼，下一局開什麼」的轉移頻率。</li>
+          <li><b>模式比對</b> — 拿最近 3～6 局當關鍵字，回頭找本靴出現過的相同片段，看當時後面開什麼。</li>
+          <li><b>跟龍</b> — 目前連開幾局，就依本靴的連莊分佈估算會不會續連。</li>
+          <li><b>黏跳判斷</b> — 統計本靴「重複 vs 反轉」的比例，偏哪邊就跟哪邊。</li>
+          <li><b>問路（下三路）</b> — 把莊、閒各試填一次，看大眼仔、小路、曱甴路變紅還是藍。</li>
+          <li><b>大路列型</b> — 依本靴已出現的列長分佈，估算目前這列會不會再往下長。</li>
+        </ul>
+        <p class="hint" style="margin:11px 0 0">
+          綜合建議＝八組加權投票，權重會隨各策略在本靴的實測命中率上下調整。這是誠實的做法，但改變不了期望值。
+        </p>
+      </div>
+      <div class="card">
+        <h2>設定</h2>
+        <div class="row">
+          <div class="field"><label>外觀</label>
+            <select id="themeSel">
+              <option value="auto" selected>跟隨系統</option>
+              <option value="light">淺色</option>
+              <option value="dark">深色</option>
+            </select>
+          </div>
+          <div class="field"><label>格子大小</label>
+            <select id="cellSel">
+              <option value="20">小</option><option value="22" selected>中</option><option value="27">大</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="dock">
+  <div class="dock-in">
+    <div class="pairrow">
+      <button class="tgl b" id="tglB" aria-pressed="false">莊對</button>
+      <button class="tgl p" id="tglP" aria-pressed="false">閒對</button>
+      <button class="tgl" id="tglTheme">切換深淺</button>
+    </div>
+    <div class="betrow">
+      <button class="big b" data-in="B">莊<small>BANKER</small></button>
+      <button class="big p" data-in="P">閒<small>PLAYER</small></button>
+      <button class="big t" data-in="T">和<small>TIE</small></button>
+      <button class="big u" id="btnUndo">撤銷<small>UNDO</small></button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="pasteSheet">
+  <div class="sheet-in">
+    <h2>貼上牌路</h2>
+    <p class="hint" style="margin:0 0 12px">B/P/T、莊/閒/和、庄/闲/和 都認得，其他字元自動忽略。</p>
+    <textarea id="pasteBox" rows="5" placeholder="例：BPPBBPTBPB 或 莊閒閒莊莊閒和"></textarea>
+    <div class="row" style="margin-top:11px">
+      <button class="outline" id="pasteCancel" style="flex:1">取消</button>
+      <button class="solid" id="pasteOk" style="flex:1.4;margin-top:0">載入</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
