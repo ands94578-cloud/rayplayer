@@ -50,6 +50,11 @@
           「命中」欄是各策略在<b>這一靴</b>的實測結果（只算莊閒、和局跳過）。權重會依實測命中率動態調整，
           命中率長期都會回到 50% 附近 — 這正是要讓你親眼看到的東西。
         </p>
+        <div class="switch">
+          <label for="ctrlOn">對照組參與綜合投票
+            <span>37 副牌同開與 37 顆骰同擲跟牌路無關，是量其他策略的基準線。開了就不再是對照組。</span></label>
+          <input type="checkbox" id="ctrlOn">
+        </div>
       </div>
 
       <div class="card">
@@ -160,17 +165,18 @@
       </div>
 
       <div class="card">
-        <h2>科學 ⟷ 神學 <span class="tag" id="vsTag">本靴實測</span></h2>
+        <h2>科學 ⟷ 神學 ⟷ 亂數 <span class="tag" id="vsTag">本靴實測</span></h2>
         <div class="vs">
           <div class="side"><div class="k">科學組</div><div class="v" id="vsSci">—</div>
             <div class="n" id="vsSciN">8 個策略</div></div>
-          <div class="mid">vs</div>
           <div class="side"><div class="k">神學組</div><div class="v" id="vsMyst">—</div>
             <div class="n" id="vsMystN">2 個策略</div></div>
+          <div class="side ctrl"><div class="k">對照組</div><div class="v" id="vsCtrl">—</div>
+            <div class="n" id="vsCtrlN">2 個策略</div></div>
         </div>
         <p class="hint" style="margin:13px 0 0" id="vsNote">
-          兩組跑在同一副牌、同一套規則上。想看長期結果，去回測頁跑 500 靴 —
-          兩邊都會停在 50% 附近，誰也贏不了誰。
+          三組跑在同一副牌、同一套規則上。對照組完全不看牌路 — 它就是一把尺。
+          去回測頁跑 500 靴：三組都會停在 50% 附近，誰也贏不了誰，也贏不了那把尺。
         </p>
       </div>
     </section>
@@ -299,6 +305,19 @@
         <p class="hint" style="margin:11px 0 0">
           綜合建議＝八組加權投票，權重會隨各策略在本靴的實測命中率上下調整。這是誠實的做法，但改變不了期望值。
         </p>
+      </div>
+      <div class="card">
+        <h2>對照組是幹嘛的</h2>
+        <ul class="plain">
+          <li><b>37 副牌同開</b> — 每要出一次訊號，就用真實補牌規則同時開 37 桌（和局重發，
+            所以 37 票必定有多數），莊多押莊、閒多押閒。</li>
+          <li><b>37 顆骰同擲</b> — 同時擲 37 顆骰，單數多押莊、雙數多押閒。37 是奇數，永遠不會平手。</li>
+          <li>這兩個<b>完全不看你的牌路</b>。它們是實驗裡的對照組 — 一把尺，用來量其他十個策略到底有沒有本事。</li>
+          <li>為了讓歷史命中率不會每次重繪就跳動，亂數用<b>確定性種子</b>（以靴號與局數起種），
+            同一局重看必得同一結果。</li>
+          <li>預設不參與綜合投票：對照組一旦參與，就不再是對照組。要開可以，開關在預測頁。</li>
+          <li>回測頁跑 500 靴，把三組的命中率並排看 — 這是這個 App 最值得看的一張表。</li>
+        </ul>
       </div>
       <div class="card">
         <h2>科學與神學</h2>

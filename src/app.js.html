@@ -298,6 +298,62 @@ var STRATS=[
 ];
 for(var _i=0;_i<STRATS.length;_i++) STRATS[_i].school='sci';
 
+/* ---- 對照組：與牌路完全無關的亂數基準線 ----
+   種子由局數決定，所以同一局重繪必得同一結果，歷史命中率才不會每次跳動。 */
+function rng32(seed){
+  var t=(seed+0x6D2B79F5)|0;
+  return function(){
+    t=Math.imul(t^(t>>>15), t|1);
+    t^=t+Math.imul(t^(t>>>7), t|61);
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+function dealVal(rnd){ var r=1+((rnd()*13)|0); return r>=10?0:r; }
+function quickHand(rnd){                       // 無限副牌近似，補牌規則與實牌靴相同
+  var p1=dealVal(rnd), b1=dealVal(rnd), p2=dealVal(rnd), b2=dealVal(rnd);
+  var pt=(p1+p2)%10, bt=(b1+b2)%10, p3=null;
+  if(pt<8 && bt<8){
+    if(pt<=5){ p3=dealVal(rnd); pt=(pt+p3)%10; }
+    if(p3===null){ if(bt<=5) bt=(bt+dealVal(rnd))%10; }
+    else{
+      var d=false;
+      if(bt<=2) d=true;
+      else if(bt===3) d=(p3!==8);
+      else if(bt===4) d=(p3>=2&&p3<=7);
+      else if(bt===5) d=(p3>=4&&p3<=7);
+      else if(bt===6) d=(p3>=6&&p3<=7);
+      if(d) bt=(bt+dealVal(rnd))%10;
+    }
+  }
+  return pt===bt?'T':(bt>pt?'B':'P');
+}
+STRATS.unshift(
+  { id:'table37', name:'37 副牌同開', desc:'同時開 37 桌，取莊閒多數', w:1.0, school:'ctrl',
+    fn:function(ctx){
+      var rnd=rng32((ctx.seed*7919 + ctx.total*13 + 1)|0), b=0, p=0, i, g, r;
+      for(i=0;i<37;i++){
+        g=0; do{ r=quickHand(rnd); g++; }while(r==='T' && g<25);   // 和局重發，確保 37 票必有多數
+        if(r==='B') b++; else if(r==='P') p++;
+      }
+      if(b===p) return null;
+      return {pick:b>p?'B':'P', str:clamp(Math.abs(b-p)/10,0,1)*0.5, note:'莊 '+b+' : 閒 '+p};
+    } },
+  { id:'dice37', name:'37 顆骰同擲', desc:'同擲 37 顆，單數多押莊', w:1.0, school:'ctrl',
+    fn:function(ctx){
+      var rnd=rng32((ctx.seed*104729 + ctx.total*31 + 7)|0), odd=0, i;
+      for(i=0;i<37;i++) if((1+((rnd()*6)|0))%2===1) odd++;
+      var even=37-odd;                                             // 37 為奇數，單雙必不相等
+      return {pick:odd>even?'B':'P', str:clamp(Math.abs(odd-even)/10,0,1)*0.5,
+              note:'單 '+odd+' : 雙 '+even};
+    } }
+);
+var USE_CTRL=false;  // 對照組預設不參與投票 —— 對照組一旦參與，就不再是對照組
+function voteOn(st){
+  if(st.school==='myst') return USE_MYST;
+  if(st.school==='ctrl') return USE_CTRL;
+  return true;
+}
+
 /* ---- 玄學組：同樣要交出命中率 ---- */
 STRATS.push(
   { id:'gua', name:'梅花易數', desc:'牌路起卦・體用生剋', w:1.3, school:'myst',
@@ -322,7 +378,8 @@ var USE_MYST=true;   // 玄學是否參與綜合投票
 /* ==========================================================================
    4. 引擎：對整靴做因果推演，同時累計每個策略的實測命中
    ========================================================================== */
-function runEngine(hands){
+function runEngine(hands, seed){
+  seed = seed||1;
   var seq=[], runs=[], runRes=[];
   var stat={}, i, s;
   for(i=0;i<STRATS.length;i++) stat[STRATS[i].id]={c:0,n:0};
@@ -332,7 +389,7 @@ function runEngine(hands){
   var lastVotes=null, lastEns=null;
 
   function step(){
-    var ctx={seq:seq, runs:runs, runRes:runRes, total:total};
+    var ctx={seq:seq, runs:runs, runRes:runRes, total:total, seed:seed};
     var votes=[], totW=0, signed=0;
     for(var j=0;j<STRATS.length;j++){
       var st=STRATS[j], v=null;
@@ -340,7 +397,7 @@ function runEngine(hands){
       var acc = stat[st.id].n>=6 ? stat[st.id].c/stat[st.id].n : 0.5;
       var adapt = stat[st.id].n>=6 ? clamp(1+3*(acc-0.5),0.35,2.2) : 1;
       var w = st.w*adapt;
-      if(v && (USE_MYST || st.school!=='myst')){ totW+=w; signed += w*v.str*(v.pick==='B'?1:-1); }
+      if(v && voteOn(st)){ totW+=w; signed += w*v.str*(v.pick==='B'?1:-1); }
       votes.push({st:st, v:v, w:w, acc:acc, n:stat[st.id].n, c:stat[st.id].c});
     }
     var raw = totW>0 ? signed/totW : 0;
@@ -415,6 +472,7 @@ function playShoe(){
    6. 渲染
    ========================================================================== */
 var CH={B:'莊',P:'閒',T:'和'};
+var SCHOOL={sci:'科學', myst:'神學', ctrl:'對照'};
 
 function markHTML(m, kind){
   var cls='mk '+kind+' '+m.k+(m.ghost?' ghost':'');
@@ -502,7 +560,7 @@ function renderPredict(R){
     var accCls = (vt.n>=6 && vt.c/vt.n>0.5) ? 'acc up' : 'acc dn';
     var strTxt = v ? Math.round(v.str*100) : 0;
     rows+='<tr><td><span class="sname">'+st.name+
-      '<span class="school '+st.school+'">'+(st.school==='sci'?'科學':'神學')+'</span></span><span class="sdesc">'+
+      '<span class="school '+st.school+'">'+SCHOOL[st.school]+'</span></span><span class="sdesc">'+
       (v&&v.note?v.note:st.desc)+'</span></td>'+
       '<td>'+chip+'</td>'+
       '<td><span class="wbar"><i style="width:'+clamp(strTxt*1.8,3,100)+'%"></i></span></td>'+
@@ -559,7 +617,7 @@ function renderStats(R){
 /* ==========================================================================
    7. 本靴續推（蒙地卡羅）
    ========================================================================== */
-var MC_SHOES=400, MC_WIN=12;
+var MC_SHOES=1500, MC_WIN=12;
 function projection(){
   var played=state.hands.length;
   var totRem=0, cB=0, cP=0, cT=0, runs=0;
@@ -626,7 +684,7 @@ function backtest(nShoes, betKey, unit, bank0, onDone, onTick){
       var local={}; for(i=0;i<STRATS.length;i++) local[STRATS[i].id]={c:0,n:0};
       for(var hi=0;hi<sh.length;hi++){
         var h=sh[hi];
-        var ctx={seq:seq,runs:runs,runRes:runRes,total:hi};
+        var ctx={seq:seq,runs:runs,runRes:runRes,total:hi,seed:s+1};
         var totW=0, signed=0, vs=[];
         for(var j=0;j<STRATS.length;j++){
           var st=STRATS[j], v=null;
@@ -634,7 +692,7 @@ function backtest(nShoes, betKey, unit, bank0, onDone, onTick){
           var acc=local[st.id].n>=6?local[st.id].c/local[st.id].n:0.5;
           var adapt=local[st.id].n>=6?clamp(1+3*(acc-0.5),0.35,2.2):1;
           var w=st.w*adapt;
-          if(v && (USE_MYST || st.school!=='myst')){ totW+=w; signed+=w*v.str*(v.pick==='B'?1:-1); }
+          if(v && voteOn(st)){ totW+=w; signed+=w*v.str*(v.pick==='B'?1:-1); }
           vs.push(v);
         }
         var pick = totW>0 ? (0.5+signed/totW*0.9>=0.5?'B':'P') : null;
@@ -855,15 +913,16 @@ function renderMyst(R){
       '<span>注碼越小，撐過波動的機會越大。這是唯一能被數學支持的「改運」方式。</span></span></div>';
 
   /* --- 科學 vs 神學 --- */
-  var sci={c:0,n:0}, my={c:0,n:0};
+  var grp={sci:{c:0,n:0,k:0}, myst:{c:0,n:0,k:0}, ctrl:{c:0,n:0,k:0}};
   for(var i=0;i<STRATS.length;i++){
-    var t = STRATS[i].school==='sci' ? sci : my, st=R.stat[STRATS[i].id];
-    t.c+=st.c; t.n+=st.n;
+    var t=grp[STRATS[i].school], st=R.stat[STRATS[i].id];
+    t.c+=st.c; t.n+=st.n; t.k++;
   }
-  $('#vsSci').textContent  = sci.n?pct(sci.c/sci.n,1):'—';
-  $('#vsMyst').textContent = my.n?pct(my.c/my.n,1):'—';
-  $('#vsSciN').textContent  = '8 個策略・'+sci.n+' 次判斷';
-  $('#vsMystN').textContent = '2 個策略・'+my.n+' 次判斷';
+  ['sci','myst','ctrl'].forEach(function(k){
+    var g2=grp[k], id=k==='sci'?'Sci':(k==='myst'?'Myst':'Ctrl');
+    $('#vs'+id).textContent  = g2.n?pct(g2.c/g2.n,1):'—';
+    $('#vs'+id+'N').textContent = g2.k+' 個策略・'+g2.n+' 次判斷';
+  });
 }
 
 /* ==========================================================================
@@ -871,7 +930,7 @@ function renderMyst(R){
    ========================================================================== */
 var lastR=null;
 function render(){
-  lastR=runEngine(state.hands);
+  lastR=runEngine(state.hands, state.shoe);
   renderPredict(lastR);
   renderRoads();
   renderStats(lastR);
@@ -999,7 +1058,7 @@ $('#btnSim').addEventListener('click', function(){
       var st=STRATS[i], s=res.stat[st.id];
       var a=s.n?s.c/s.n:0;
       rows+='<tr><td>'+st.name+'<span class="school '+st.school+'">'+
-        (st.school==='sci'?'科':'神')+'</span></td><td>'+s.n.toLocaleString()+'</td><td>'+(s.n?pct(a,2):'—')+
+        SCHOOL[st.school].charAt(0)+'</span></td><td>'+s.n.toLocaleString()+'</td><td>'+(s.n?pct(a,2):'—')+
         '</td><td class="'+(s.pl>=0?'pos':'neg')+'">'+(s.pl>0?'+':'')+Math.round(s.pl).toLocaleString()+'</td></tr>';
     }
     rows+='<tr class="hi"><td>綜合建議</td><td>'+res.en.n.toLocaleString()+'</td><td>'+
@@ -1023,6 +1082,14 @@ $('#btnSim').addEventListener('click', function(){
   sel.addEventListener('change', function(){
     try{ localStorage.setItem('bacc.zodiac', this.value); }catch(e){}
     renderMyst(lastR);
+  });
+  var cw=$('#ctrlOn');
+  try{ var cv=localStorage.getItem('bacc.ctrl'); if(cv==='1'){ cw.checked=true; USE_CTRL=true; } }catch(e){}
+  cw.addEventListener('change', function(){
+    USE_CTRL=this.checked;
+    try{ localStorage.setItem('bacc.ctrl', this.checked?'1':'0'); }catch(e){}
+    render();
+    toast(this.checked?'對照組已加入投票':'對照組已退出投票');
   });
   var sw=$('#mystOn');
   try{ var mv=localStorage.getItem('bacc.myst'); if(mv==='0'){ sw.checked=false; USE_MYST=false; } }catch(e){}
