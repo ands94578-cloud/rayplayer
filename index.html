@@ -4,667 +4,835 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&display=swap">
-<title>富能量吸取器</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400&display=swap">
+<title>凡塵能量吸取器</title>
 <style>
   :root{
-    --bg:#06070d;
-    --ink:#e9e3d4;
-    --ink-dim:#9a9382;
-    --gold:#d8b46a;
-    --line:rgba(216,180,106,.28);
-    --panel:rgba(10,12,20,.62);
-    --metal:#f0e6c8;
-    --wood:#6ce6a2;
-    --water:#59c6ff;
-    --fire:#ff6f61;
-    --earth:#f3b73f;
+    --ground:#0a0b11;
+    --panel:#111320;
+    --panel-2:#161a29;
+    --edge:rgba(217,185,120,.18);
+    --edge-soft:rgba(217,185,120,.09);
+    --ink:#ece5d5;
+    --ink-2:#a9a291;
+    --ink-3:#6f6a5d;
+    --gold:#d9b978;
+    --metal:#f0e6c8; --wood:#6ce6a2; --water:#59c6ff; --fire:#ff7a63; --earth:#f5bd4a;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:"Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,"PingFang TC","Microsoft JhengHei",serif;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
+  html{-webkit-text-size-adjust:100%}
   body{
-    margin:0;background:var(--bg);color:var(--ink);
-    font-family:"Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,"PingFang TC","Microsoft JhengHei",serif;
-    overflow:hidden;overscroll-behavior:none;
-    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    margin:0;min-height:100%;background:var(--ground);color:var(--ink);
+    font-family:var(--serif);font-weight:300;line-height:1.7;
+    -webkit-tap-highlight-color:transparent;
   }
-  canvas#field{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  canvas#aura{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  .app{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:26px 18px 60px;display:flex;flex-direction:column;gap:26px}
+  button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  :focus-visible{outline:1px solid var(--gold);outline-offset:3px}
 
-  .hud{position:fixed;inset:0;pointer-events:none;padding:max(14px,env(safe-area-inset-top)) 14px 14px}
-  .title{
-    position:absolute;top:max(14px,env(safe-area-inset-top));left:0;right:0;text-align:center;
+  /* ── 頁首 ── */
+  .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+  .who{font-size:13px;letter-spacing:.16em;color:var(--ink-2)}
+  .who button{color:var(--gold);border-bottom:1px dotted rgba(217,185,120,.4);padding:0 1px}
+  .date{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--ink-3)}
+
+  /* ── 主陣 ── */
+  .altar{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 2px}
+  .ringwrap{position:relative;width:210px;height:210px}
+  .ringwrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ringwrap .core{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   }
-  .title h1{margin:0;font-size:clamp(15px,3.4vw,20px);letter-spacing:.42em;font-weight:500;color:var(--gold);text-indent:.42em}
-  .title p{margin:6px 0 0;font-size:11px;letter-spacing:.28em;color:var(--ink-dim);text-indent:.28em}
+  .core .amount{font-family:var(--mono);font-size:46px;font-weight:300;color:var(--gold);line-height:1;letter-spacing:-.02em}
+  .core .of{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.12em}
+  .core .cap{font-size:11px;letter-spacing:.34em;color:var(--ink-2);text-indent:.34em;margin-top:6px}
+  .altar .stage{font-size:14px;letter-spacing:.28em;text-indent:.28em;color:var(--ink);margin-top:8px}
+  .altar .stage b{color:var(--gold);font-weight:500}
+  .altar .sub{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.1em}
 
-  /* 左側：五行儀表 */
-  .gauge{
-    position:absolute;left:14px;top:96px;width:min(210px,42vw);
-    background:var(--panel);border:1px solid var(--line);border-radius:2px;
-    padding:12px 12px 10px;backdrop-filter:blur(6px);
+  /* ── 三行動 ── */
+  .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .act{
+    background:var(--panel);border:1px solid var(--edge-soft);border-radius:3px;
+    padding:15px 8px 13px;text-align:center;transition:border-color .18s,background .18s,transform .12s;
   }
-  .gauge h2{margin:0 0 10px;font-size:11px;letter-spacing:.3em;color:var(--ink-dim);font-weight:400}
-  .row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-  .row .cn{width:1.2em;font-size:13px;text-align:center;flex:none}
-  .bar{flex:1;height:4px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
-  .bar i{position:absolute;inset:0 auto 0 0;width:0;transition:width .18s linear;display:block}
-  .row .num{width:3.4em;text-align:right;font-size:11px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+  .act:hover{border-color:var(--edge);background:var(--panel-2)}
+  .act:active{transform:translateY(1px)}
+  .act .glyph{font-size:19px;letter-spacing:.2em;text-indent:.2em;color:var(--gold);display:block}
+  .act small{display:block;margin-top:5px;font-size:10.5px;color:var(--ink-3);letter-spacing:.08em}
+  .act[data-act="transmute"] .glyph{color:#c9a2ff}
+  .act[data-act="breath"] .glyph{color:var(--water)}
 
-  .total{margin-top:12px;padding-top:10px;border-top:1px solid rgba(216,180,106,.16)}
-  .total .big{font-size:26px;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1.1}
-  .total .lbl{font-size:10px;letter-spacing:.3em;color:var(--ink-dim);margin-bottom:2px}
-  .stage{margin-top:8px;font-size:12px;letter-spacing:.2em;color:var(--ink)}
-  .stage small{color:var(--ink-dim);letter-spacing:.1em}
+  /* ── 心法 ── */
+  .mantra{
+    border-top:1px solid var(--edge-soft);border-bottom:1px solid var(--edge-soft);
+    padding:20px 10px;text-align:center;
+  }
+  .mantra .lbl{font-size:10px;letter-spacing:.36em;color:var(--ink-3);text-indent:.36em}
+  .mantra p{margin:10px 0 0;font-size:17px;letter-spacing:.1em;color:var(--gold);line-height:1.9}
 
-  /* 熱度（走火入魔） */
-  .heat{margin-top:10px}
-  .heat .lbl{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.2em;color:var(--ink-dim);margin-bottom:4px}
-  .heat .bar{height:3px}
-  .heat i{background:linear-gradient(90deg,#4a7fae,#f3b73f 60%,#ff5340)}
-  .heat.hot .lbl{color:#ff8a7a}
+  /* ── 面板 ── */
+  .panel{background:var(--panel);border:1px solid var(--edge-soft);border-radius:3px;padding:18px 16px}
+  .panel h2{
+    margin:0 0 14px;font-size:11px;font-weight:400;letter-spacing:.32em;text-indent:.32em;color:var(--ink-2);
+    display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .panel h2 span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-indent:0;color:var(--ink-3)}
 
-  /* 底部提示與按鈕 */
-  .foot{position:absolute;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));text-align:center}
-  .foot .tip{font-size:11px;letter-spacing:.2em;color:var(--ink-dim);margin-bottom:10px;min-height:1.2em}
+  .five .row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .five .row:last-child{margin-bottom:0}
+  .five .cn{width:1.3em;text-align:center;font-size:14px;flex:none}
+  .five .tag{width:5.6em;font-size:10.5px;color:var(--ink-3);letter-spacing:.02em;flex:none;white-space:nowrap}
+  .five .bar{flex:1;height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+  .five .bar i{display:block;height:100%;width:0;border-radius:3px;transition:width .5s cubic-bezier(.2,.7,.3,1)}
+  .five .n{width:2.6em;text-align:right;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .five .hint{margin:14px 0 0;font-size:12px;line-height:1.9;color:var(--ink-2)}
+  .five .hint b{color:var(--ink);font-weight:400}
+
+  .grid28{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}
+  .grid28 i{
+    display:block;aspect-ratio:1;border-radius:2px;background:rgba(255,255,255,.045);
+    border:1px solid transparent;
+  }
+  .grid28 i.today{border-color:rgba(217,185,120,.55)}
+  .trace .legend{display:flex;justify-content:space-between;margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.08em}
+
+  .log ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+  .log li{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.045)}
+  .log li:last-child{border-bottom:none}
+  .log .dot{width:6px;height:6px;border-radius:50%;flex:none}
+  .log .txt{flex:1;font-size:13.5px;letter-spacing:.04em;min-width:0}
+  .log .txt em{font-style:normal;color:var(--ink-3);font-size:12px}
+  .log .val{font-family:var(--mono);font-size:11px;color:var(--gold)}
+  .log .del{color:var(--ink-3);font-size:15px;line-height:1;padding:2px 4px;opacity:.5;transition:.15s}
+  .log .del:hover{opacity:1;color:var(--fire)}
+  .empty{font-size:13px;color:var(--ink-3);text-align:center;padding:14px 0;letter-spacing:.08em}
+
+  .foot{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;font-size:11px;color:var(--ink-3);letter-spacing:.1em;text-align:center}
+  .foot button,.foot a{color:var(--ink-3);text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.15);font-size:11px}
+  .foot button:hover,.foot a:hover{color:var(--gold);border-color:rgba(217,185,120,.5)}
+  .foot .note{flex-basis:100%;color:#54503f;letter-spacing:.06em;line-height:1.9}
+
+  /* ── 對話框 ── */
+  .veil{position:fixed;inset:0;z-index:20;display:none;background:rgba(4,5,9,.86);backdrop-filter:blur(3px);overflow:auto;padding:20px}
+  .veil.on{display:grid;place-items:center}
+  .sheet{
+    position:relative;
+    width:min(480px,100%);background:#0d0f18;border:1px solid var(--edge);border-radius:4px;
+    padding:24px 22px 22px;box-shadow:0 24px 80px rgba(0,0,0,.6);
+  }
+  .sheet .x{
+    position:absolute;top:8px;right:10px;font-size:19px;line-height:1;padding:6px 8px;
+    color:var(--ink-3);opacity:.6;transition:.15s;
+  }
+  .sheet .x:hover{opacity:1;color:var(--ink)}
+  .sheet h3{margin:0;font-size:15px;font-weight:400;letter-spacing:.3em;text-indent:.3em;color:var(--gold);text-align:center}
+  .sheet .lede{margin:8px 0 20px;text-align:center;font-size:12px;color:var(--ink-3);letter-spacing:.14em;text-indent:.14em}
+  .sheet .grp{margin-bottom:16px}
+  .sheet .grp>.head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .sheet .grp .cn{font-size:14px}
+  .sheet .grp .nm{font-size:11px;letter-spacing:.2em;color:var(--ink-3)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 13px;font-size:13px;
+    color:var(--ink-2);transition:.15s;letter-spacing:.04em;
+  }
+  .chip:hover{color:var(--ink);border-color:currentColor}
+  .chip.on{background:rgba(217,185,120,.14);border-color:var(--gold);color:var(--ink)}
+  input[type=text],textarea{
+    width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;
+    color:var(--ink);font-family:inherit;font-weight:300;font-size:14px;padding:10px 12px;outline:none;resize:vertical;
+  }
+  input[type=text]:focus,textarea:focus{border-color:rgba(217,185,120,.55)}
+  label.fld{display:block;font-size:10.5px;letter-spacing:.24em;color:var(--ink-3);margin:0 0 6px}
+  .btnrow{display:flex;gap:10px;margin-top:20px}
   .btn{
-    pointer-events:auto;cursor:pointer;display:inline-block;
-    background:transparent;color:var(--gold);border:1px solid var(--line);
-    padding:9px 20px;font-size:12px;letter-spacing:.3em;text-indent:.3em;
-    font-family:inherit;border-radius:2px;transition:.18s;
+    flex:1;border:1px solid var(--edge);border-radius:3px;padding:11px;font-size:13px;
+    letter-spacing:.28em;text-indent:.28em;color:var(--gold);transition:.16s;text-align:center;
   }
-  .btn:hover{background:rgba(216,180,106,.1);border-color:rgba(216,180,106,.55)}
-  .btn:active{transform:translateY(1px)}
-  .btn[disabled]{opacity:.35;cursor:default}
+  .btn:hover{background:rgba(217,185,120,.1);border-color:rgba(217,185,120,.55)}
+  .btn.ghost{color:var(--ink-3);border-color:rgba(255,255,255,.1)}
+  .btn.ghost:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+  .btn[disabled]{opacity:.3;cursor:default}
+  .fine{margin:14px 0 0;font-size:10.5px;line-height:1.9;color:#54503f;text-align:center;letter-spacing:.06em}
 
-  /* 遮罩對話框 */
-  .veil{
-    position:fixed;inset:0;z-index:10;display:none;place-items:center;
-    background:radial-gradient(120% 90% at 50% 40%,rgba(8,10,18,.86),rgba(3,4,8,.97));
-    padding:20px;overflow:auto;
-  }
-  .veil.on{display:grid}
-  .card{
-    width:min(440px,100%);background:rgba(9,11,19,.92);border:1px solid var(--line);
-    border-radius:3px;padding:26px 24px;box-shadow:0 0 80px rgba(216,180,106,.07);
-  }
-  .card h2{margin:0 0 4px;font-size:16px;letter-spacing:.34em;color:var(--gold);text-indent:.34em;text-align:center;font-weight:500}
-  .card .sub{margin:0 0 20px;text-align:center;font-size:11px;letter-spacing:.24em;color:var(--ink-dim);text-indent:.24em}
-  label{display:block;font-size:11px;letter-spacing:.24em;color:var(--ink-dim);margin:14px 0 6px}
-  input{
-    width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(216,180,106,.2);
-    color:var(--ink);font-family:inherit;font-size:14px;padding:9px 11px;border-radius:2px;outline:none;
-  }
-  input:focus{border-color:rgba(216,180,106,.6)}
-  .card .go{width:100%;margin-top:22px;padding:12px}
-  .fine{margin-top:16px;font-size:10px;line-height:1.8;color:#5f5a4e;text-align:center;letter-spacing:.1em}
+  /* 化煞步驟 */
+  .step{display:none}
+  .step.on{display:block}
+  .qn{margin:0 0 14px;text-align:center;font-size:16px;letter-spacing:.08em;color:var(--gold);line-height:1.9}
+  .burn{text-align:center;padding:8px 0 4px}
+  .burn .flame{font-size:40px;line-height:1.4;filter:saturate(.8)}
+  .burn p{margin:6px 0 0;font-size:13px;color:var(--ink-2);letter-spacing:.1em}
 
-  /* 報告 */
-  .verdict{text-align:center;margin:6px 0 18px}
-  .verdict .elem{font-size:56px;line-height:1;color:var(--gold);text-shadow:0 0 30px currentColor}
-  .verdict .name{margin-top:10px;font-size:13px;letter-spacing:.3em;text-indent:.3em}
-  .verdict .name b{color:var(--gold);font-weight:500}
-  .dist{display:flex;height:6px;margin:18px 0 6px;overflow:hidden;border-radius:2px}
-  .dist span{display:block;height:100%}
-  .distkey{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-dim);letter-spacing:.1em}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(216,180,106,.16);border:1px solid rgba(216,180,106,.16);margin:20px 0 4px}
-  .cell{background:#0a0c14;padding:12px 12px 11px}
-  .cell .k{font-size:10px;letter-spacing:.24em;color:var(--ink-dim)}
-  .cell .v{margin-top:5px;font-size:15px;color:var(--ink)}
-  .poem{margin:20px 0 0;padding:14px 0;border-top:1px solid rgba(216,180,106,.16);border-bottom:1px solid rgba(216,180,106,.16);text-align:center;font-size:14px;letter-spacing:.22em;text-indent:.22em;color:var(--gold);line-height:2}
-  .advice{margin:16px 0 0;font-size:12px;line-height:2;color:var(--ink-dim);letter-spacing:.06em}
-  .advice b{color:var(--ink);font-weight:500}
-  .cta{display:flex;gap:10px;margin-top:22px}
-  .cta .btn{flex:1;text-align:center}
+  /* 調息 */
+  .breath{display:flex;flex-direction:column;align-items:center;gap:18px;padding:6px 0 2px}
+  .orb{
+    width:170px;height:170px;border-radius:50%;position:relative;display:grid;place-items:center;
+    background:radial-gradient(circle at 50% 50%,rgba(89,198,255,.28),rgba(89,198,255,.03) 70%);
+    border:1px solid rgba(89,198,255,.35);
+    transform:scale(.62);transition:transform 4s cubic-bezier(.4,0,.4,1);
+  }
+  .orb.in{transform:scale(1)}
+  .orb.hold{transform:scale(1)}
+  .orb.out{transform:scale(.62);transition-duration:6s}
+  .orb .ph{font-size:17px;letter-spacing:.4em;text-indent:.4em;color:#cfe9ff}
+  .breath .cyc{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink-3)}
+  @media (prefers-reduced-motion:reduce){
+    .orb{transition-duration:.2s!important}
+    .five .bar i{transition:none}
+  }
+
+  /* 吐司 */
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:40;
+    background:rgba(13,15,24,.96);border:1px solid var(--edge);border-radius:3px;
+    padding:11px 20px;font-size:13px;letter-spacing:.14em;color:var(--gold);
+    opacity:0;pointer-events:none;transition:.28s;white-space:nowrap;max-width:92vw;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:420px){
+    .core .amount{font-size:40px}
+    .ringwrap{width:186px;height:186px}
+    .act .glyph{font-size:17px}
+  }
 </style>
 </head>
 <body>
 
-<canvas id="field"></canvas>
+<canvas id="aura"></canvas>
 
-<div class="hud">
-  <div class="title">
-    <h1>富能量吸取器</h1>
-    <p>五行靈氣採集陣 · 玄之又玄</p>
+<main class="app">
+  <div class="top">
+    <div class="who">道號 · <button id="nameBtn">無名氏</button></div>
+    <div class="date mono" id="dateLbl"></div>
   </div>
 
-  <div class="gauge" id="gauge">
-    <h2>五行納氣</h2>
-    <div id="rows"></div>
-    <div class="total">
-      <div class="lbl">總能量</div>
-      <div class="big" id="total">0</div>
-      <div class="stage" id="stage">練氣 <small>· 一層</small></div>
+  <section class="altar">
+    <div class="ringwrap">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="6"></circle>
+        <circle id="ringFill" cx="100" cy="100" r="88" fill="none" stroke="var(--gold)" stroke-width="6"
+                stroke-linecap="round" stroke-dasharray="552.9" stroke-dashoffset="552.9"
+                style="transition:stroke-dashoffset .6s cubic-bezier(.2,.7,.3,1)"></circle>
+      </svg>
+      <div class="core">
+        <div class="amount mono" id="todayVal">0</div>
+        <div class="of mono">／ 每日 <span id="goalVal">60</span></div>
+        <div class="cap">今日納氣</div>
+      </div>
     </div>
-    <div class="heat" id="heatBox">
-      <div class="lbl"><span id="heatLbl">心火</span><span id="heatPct">0%</span></div>
-      <div class="bar"><i id="heatBar"></i></div>
-    </div>
+    <div class="stage" id="stageLbl">練氣 · <b>一層</b></div>
+    <div class="sub mono" id="subLbl">連續 0 天 · 累積 0</div>
+  </section>
+
+  <div class="acts">
+    <button class="act" data-act="gain"><span class="glyph">納氣</span><small>記一件好事</small></button>
+    <button class="act" data-act="transmute"><span class="glyph">化煞</span><small>轉化一件煩心事</small></button>
+    <button class="act" data-act="breath"><span class="glyph">調息</span><small>一分鐘呼吸</small></button>
   </div>
+
+  <section class="mantra">
+    <div class="lbl">今日心法</div>
+    <p id="mantraTxt">—</p>
+  </section>
+
+  <section class="panel five">
+    <h2>五行納氣 <span>近 30 日</span></h2>
+    <div id="fiveRows"></div>
+    <p class="hint" id="fiveHint"></p>
+  </section>
+
+  <section class="panel trace">
+    <h2>修行足跡 <span id="streakLbl">連續 0 天</span></h2>
+    <div class="grid28" id="grid28"></div>
+    <div class="legend"><span id="gridFrom"></span><span>今日</span></div>
+  </section>
+
+  <section class="panel log">
+    <h2>今日紀錄 <span id="logCount">0 筆</span></h2>
+    <div id="logBody"></div>
+  </section>
 
   <div class="foot">
-    <div class="tip" id="tip">按住畫面（或長按空白鍵）催動吸取陣</div>
-    <button class="btn" id="finish">收 功 結 印</button>
+    <button id="exportBtn">匯出紀錄</button>
+    <a href="toy.html">打坐一輪</a>
+    <button id="resetBtn">清空重修</button>
+    <div class="note">所有紀錄只存在這台裝置的瀏覽器裡，不會上傳任何地方。<br>本器械為情緒與習慣的自我照顧工具，不能取代醫療或心理專業協助。</div>
+  </div>
+</main>
+
+<!-- 開光／改名 -->
+<div class="veil" id="vName">
+  <div class="sheet">
+    <h3>開 光</h3>
+    <p class="lede">先報上名來</p>
+    <label class="fld">道號／姓名</label>
+    <input type="text" id="nameIn" maxlength="16" placeholder="無名氏" autocomplete="off">
+    <div class="btnrow"><button class="btn" id="nameOk">起 陣</button></div>
+    <p class="fine">只存在你的瀏覽器裡，隨時可改。</p>
   </div>
 </div>
 
-<!-- 開光 -->
-<div class="veil on" id="setup">
-  <div class="card">
-    <h2>開 光</h2>
-    <p class="sub">先報上名來，方能校準你的本命靈頻</p>
-    <label>姓名 / 道號</label>
-    <input id="inName" maxlength="16" placeholder="無名氏亦可" autocomplete="off">
-    <label>生辰（年-月-日）</label>
-    <input id="inBirth" type="date">
-    <button class="btn go" id="start">起 陣</button>
-    <p class="fine">本器械純屬娛樂，不構成任何醫療、投資或人生建議。<br>吸取過猛恐致走火入魔，請自行斟酌。</p>
+<!-- 納氣 -->
+<div class="veil" id="vGain">
+  <div class="sheet">
+    <button class="x" data-close aria-label="關閉">×</button>
+    <h3>納 氣</h3>
+    <p class="lede">今天有什麼好事？點一個，或自己寫</p>
+    <div id="gainGroups"></div>
+    <label class="fld" style="margin-top:6px">附記（可略）</label>
+    <input type="text" id="gainNote" maxlength="60" placeholder="想留一句就留一句" autocomplete="off">
+    <div class="btnrow">
+      <button class="btn ghost" data-close>再說</button>
+      <button class="btn" id="gainOk" disabled>納 入</button>
+    </div>
   </div>
 </div>
 
-<!-- 能量報告 -->
-<div class="veil" id="report">
-  <div class="card" id="reportCard"></div>
+<!-- 化煞 -->
+<div class="veil" id="vTrans">
+  <div class="sheet">
+    <button class="x" data-close aria-label="關閉">×</button>
+    <h3>化 煞</h3>
+    <p class="lede" id="transLede">把卡住你的事寫下來</p>
+
+    <div class="step on" data-step="0">
+      <label class="fld">此刻什麼事讓你不舒服？</label>
+      <textarea id="transTxt" rows="3" maxlength="300" placeholder="不用寫得好，寫出來就好"></textarea>
+      <div class="btnrow">
+        <button class="btn ghost" data-close>再說</button>
+        <button class="btn" id="transNext1">下 一 步</button>
+      </div>
+    </div>
+
+    <div class="step" data-step="1">
+      <p class="qn" id="transQ">—</p>
+      <label class="fld">回它一句（可略）</label>
+      <textarea id="transAns" rows="2" maxlength="200" placeholder="想到什麼寫什麼"></textarea>
+      <div class="btnrow">
+        <button class="btn ghost" id="transQAgain">換個問題</button>
+        <button class="btn" id="transNext2">下 一 步</button>
+      </div>
+    </div>
+
+    <div class="step" data-step="2">
+      <div class="burn">
+        <div class="flame" id="burnGlyph">🔥</div>
+        <p id="burnTxt">要把剛剛寫的燒掉，還是留著？</p>
+      </div>
+      <div class="btnrow">
+        <button class="btn ghost" id="transKeep">留 著</button>
+        <button class="btn" id="transBurn">焚 化</button>
+      </div>
+      <p class="fine">焚化＝只記下你化過一次煞，內容不留存。</p>
+    </div>
+  </div>
 </div>
+
+<!-- 調息 -->
+<div class="veil" id="vBreath">
+  <div class="sheet">
+    <button class="x" data-close aria-label="關閉">×</button>
+    <h3>調 息</h3>
+    <p class="lede">吸四 · 屏四 · 吐六，共四息</p>
+    <div class="breath">
+      <div class="orb" id="orb"><span class="ph" id="orbPh">準備</span></div>
+      <div class="cyc mono" id="orbCyc">第 0 ／ 4 息</div>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" id="breathStop">收 功</button>
+      <button class="btn" id="breathStart">起 息</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 (() => {
 'use strict';
 
-/* ────────── 五行 ────────── */
+/* ══════════ 五行與凡塵能量源 ══════════ */
 const ELEMENTS = [
-  { key:'metal', cn:'金', color:'#f0e6c8', dir:'西',   colorName:'素白 · 鎏金', num:7, organ:'肺' },
-  { key:'wood',  cn:'木', color:'#6ce6a2', dir:'東',   colorName:'青翠 · 松綠', num:3, organ:'肝' },
-  { key:'water', cn:'水', color:'#59c6ff', dir:'北',   colorName:'玄黑 · 深藍', num:1, organ:'腎' },
-  { key:'fire',  cn:'火', color:'#ff6f61', dir:'南',   colorName:'赤紅 · 朱橘', num:9, organ:'心' },
-  { key:'earth', cn:'土', color:'#f3b73f', dir:'中宮', colorName:'土黃 · 米褐', num:5, organ:'脾' },
+  { key:'metal', cn:'金', tag:'財氣·成就', color:'#f0e6c8',
+    sources:['完成一件事','談成了','有進帳','被肯定','清掉雜物','存下一筆'],
+    advice:['把手邊最小的一件事做完','清掉一樣不用的東西'],
+    mantras:['該是我的跑不掉，不是我的不必追。','先把手邊最小那件做完，財氣自然接上。','清掉一樣不用的東西，就空出一分福氣。'] },
+  { key:'wood',  cn:'木', tag:'生機·成長', color:'#6ce6a2',
+    sources:['學到新東西','動了身體','曬到太陽','走進大自然','讀了幾頁書','早起了'],
+    advice:['學一點新東西','出去曬個太陽、走一走'],
+    mantras:['今天比昨天多懂一點，就是在長。','慢慢來，比較快。','曬得到太陽的人，很難一直低落。'] },
+  { key:'water', cn:'水', tag:'人和·情緒', color:'#59c6ff',
+    sources:['睡飽了','喝夠水','好好聊了天','幫了人','被人幫','放過一件事'],
+    advice:['睡飽一點、喝夠水','找個人好好說說話'],
+    mantras:['情緒像水，讓它流，別去堵。','你今天的溫柔，會繞一圈流回你身上。','睡飽了再想那件事，答案會不一樣。'] },
+  { key:'fire',  cn:'火', tag:'熱情·行動', color:'#ff7a63',
+    sources:['克服了拖延','主動出擊','做了會怕的事','大笑一場','流了汗','說出真心話'],
+    advice:['先做五分鐘那件拖著的事','動一動、流點汗'],
+    mantras:['先做五分鐘，怕的事就會縮小。','想到就去做，猶豫最耗能量。','大聲笑一次，勝過想通十件事。'] },
+  { key:'earth', cn:'土', tag:'安定·感恩', color:'#f5bd4a',
+    sources:['感謝一件事','好好吃一頓','陪了家人','整理了環境','靜靜發呆','摸了毛小孩'],
+    advice:['謝謝一件已經擁有的事','把身邊一角整理乾淨'],
+    mantras:['腳踏在地上，心就不會飄。','先謝謝已經有的，再去要更多的。','家裡乾淨一角，心就安一塊。'] },
 ];
 const IDX = Object.fromEntries(ELEMENTS.map((e,i)=>[e.key,i]));
-// 相生：木→火→土→金→水→木
-const SHENG = { wood:'fire', fire:'earth', earth:'metal', metal:'water', water:'wood' };
-// 相剋：木→土→水→火→金→木
-const KE    = { wood:'earth', earth:'water', water:'fire', fire:'metal', metal:'wood' };
 const BY = k => ELEMENTS[IDX[k]];
-const SHICHEN = ['子時 23–01','丑時 01–03','寅時 03–05','卯時 05–07','辰時 07–09','巳時 09–11',
-                 '午時 11–13','未時 13–15','申時 15–17','酉時 17–19','戌時 19–21','亥時 21–23'];
-const TRIGRAMS = ['☰','☱','☲','☳','☴','☵','☶','☷'];
+// 相生：木→火→土→金→水→木（誰生「它」，就借誰來補）
+const SHENG_FROM = { fire:'wood', earth:'fire', metal:'earth', water:'metal', wood:'water' };
+
+const QUESTIONS = [
+  '這件事裡，哪一分是我真的能動的？',
+  '五年後的我，會怎麼看今天這件事？',
+  '如果是朋友遇到，我會怎麼勸他？',
+  '這件事讓我看見，我其實在乎什麼？',
+  '最壞會怎樣？那樣我撐得住嗎？',
+  '有沒有一件我現在就能做的小事？',
+  '我是在解決問題，還是在重播它？',
+  '這裡面有哪一塊，其實不是我的責任？',
+];
 const STAGES = [
-  [0,'練氣'],[500,'築基'],[1400,'金丹'],[3000,'元嬰'],[5500,'化神'],[9000,'渡劫'],[14000,'大乘'],
+  [0,'練氣'],[600,'築基'],[1800,'金丹'],[4000,'元嬰'],[8000,'化神'],[15000,'渡劫'],[26000,'大乘'],
 ];
-const POEMS = [
-  '雲開見月明，靈台自在清',
-  '一氣化三清，萬象歸於寧',
-  '風起於青萍，勢成於九霄',
-  '心若冰清，天塌不驚',
-  '道法自然，水到渠成',
-  '藏鋒守拙，厚積薄發',
-  '山高自有客行路，水深自有渡船人',
-  '静水流深，滄笙踏歌',
-  '既來之，則安之，靈氣自來',
-  '天行有常，不為堯存',
-  '莫聽穿林打葉聲，何妨吟嘯且徐行',
-  '柳暗花明，別有洞天',
-];
+const CN_NUM = ['','一','二','三','四','五','六','七','八','九'];
+const GOAL = 60;
+const VAL = { gain:10, transmute:25, breath:15 };
 
-/* ────────── 種子亂數（讓同一人同一天結果穩定） ────────── */
-function hashStr(s){
-  let h = 2166136261 >>> 0;
-  for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
-  return h >>> 0;
-}
-function mulberry32(a){
-  return function(){
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+/* ══════════ 儲存 ══════════ */
+const KEY = 'fuqi.v1';
+const store = { profile:{ name:'', since:'' }, entries:[] };
 
-/* ────────── 狀態 ────────── */
-const cv = document.getElementById('field');
-const ctx = cv.getContext('2d', { alpha:false });
-let W=0, H=0, DPR=1;
-
-const S = {
-  running:false,
-  seed:0, rnd:Math.random,
-  natal:'earth',          // 本命五行（影響靈氣分佈）
-  weights:[1,1,1,1,1],
-  tally:[0,0,0,0,0],
-  total:0,
-  heat:0, overheated:false, overUntil:0,
-  absorbing:false,
-  px:0, py:0, hasPointer:false,
-  spin:0, corePulse:0,
-  particles:[], sparks:[],
-  t:0, startedAt:0,
-};
-
-/* ────────── 粒子貼圖（預先算好，省 shadowBlur） ────────── */
-const SPRITE = {};
-function makeSprites(){
-  for (const e of ELEMENTS) SPRITE[e.key] = sprite(e.color);
-  SPRITE.origin = sprite('#ffe6a8');
-}
-function sprite(color){
-  const s = 48, c = document.createElement('canvas');
-  c.width = c.height = s;
-  const g = c.getContext('2d');
-  const grad = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
-  grad.addColorStop(0,   color);
-  grad.addColorStop(.22, color);
-  grad.addColorStop(.5,  hexA(color,.45));
-  grad.addColorStop(1,   hexA(color,0));
-  g.fillStyle = grad; g.fillRect(0,0,s,s);
-  return c;
-}
-function hexA(hex,a){
-  const n = parseInt(hex.slice(1),16);
-  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
-}
-
-/* ────────── 版面 ────────── */
-function resize(){
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = window.innerWidth; H = window.innerHeight;
-  cv.width = Math.floor(W*DPR); cv.height = Math.floor(H*DPR);
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.fillStyle = '#06070d'; ctx.fillRect(0,0,W,H);
-  if (!S.hasPointer){ S.px = W/2; S.py = H/2; }
-}
-window.addEventListener('resize', resize);
-
-/* ────────── 靈氣粒子 ────────── */
-const PULL_R = 250;      // 吸取場半徑
-const CORE_R = 34;       // 陣心半徑
-const MAX_HEAT = 100;
-
-function targetCount(){ return Math.round(Math.min(260, (W*H)/6200)); }
-
-function spawnParticle(fromEdge){
-  const r = S.rnd();
-  let acc = 0, ei = 4, sum = S.weights.reduce((a,b)=>a+b,0);
-  for (let i=0;i<5;i++){ acc += S.weights[i]/sum; if (r <= acc){ ei = i; break; } }
-  const rare = S.rnd() < 0.018;                  // 天地元氣
-  let x, y;
-  if (fromEdge){
-    const side = (S.rnd()*4)|0;
-    if (side===0){ x = -20; y = S.rnd()*H; }
-    else if (side===1){ x = W+20; y = S.rnd()*H; }
-    else if (side===2){ x = S.rnd()*W; y = -20; }
-    else { x = S.rnd()*W; y = H+20; }
-  } else { x = S.rnd()*W; y = S.rnd()*H; }
-  const ang = S.rnd()*Math.PI*2;
-  const sp = 6 + S.rnd()*16;
-  return {
-    e: ei, x, y,
-    vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp,
-    r: rare ? 5.5 + S.rnd()*2 : 1.4 + S.rnd()*2.4,
-    rare,
-    ph: S.rnd()*Math.PI*2,
-  };
-}
-function seedField(){
-  S.particles.length = 0;
-  const n = targetCount();
-  for (let i=0;i<n;i++) S.particles.push(spawnParticle(false));
-}
-
-function addSpark(x,y,color){
-  const a = S.rnd()*Math.PI*2, sp = 40 + S.rnd()*90;
-  S.sparks.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, color });
-}
-
-/* ────────── 每幀更新 ────────── */
-function update(dt){
-  S.t += dt;
-  S.spin += dt * (S.absorbing ? 1.5 : 0.4);
-  S.corePulse = Math.max(0, S.corePulse - dt*3.2);
-
-  // 心火（過熱）機制
-  if (S.overheated){
-    if (S.t >= S.overUntil){ S.overheated = false; S.heat = 42; setTip('心息已平，可續吸取'); }
-    S.heat = Math.max(0, S.heat - dt*28);
-  } else if (S.absorbing){
-    S.heat += dt*17;
-    if (S.heat >= MAX_HEAT){
-      S.heat = MAX_HEAT; S.overheated = true; S.overUntil = S.t + 3;
-      S.absorbing = false;
-      setTip('走火入魔！靜心三息…');
-      for (let i=0;i<26;i++) addSpark(S.px, S.py, '#ff5340');
-    }
-  } else {
-    S.heat = Math.max(0, S.heat - dt*22);
-  }
-
-  const pulling = S.absorbing && !S.overheated && S.hasPointer;
-  // 靈氣濃度隨呼吸起伏
-  const density = 0.75 + 0.25*Math.sin(S.t*0.45);
-
-  for (let i=S.particles.length-1;i>=0;i--){
-    const p = S.particles[i];
-    if (pulling){
-      const dx = S.px - p.x, dy = S.py - p.y;
-      const d2 = dx*dx + dy*dy, d = Math.sqrt(d2) || 1;
-      if (d < PULL_R){
-        const pull = 18000000 / Math.max(d2, 900);          // 近距離加速衝入
-        const falloff = 1 - (d/PULL_R)*0.35;
-        p.vx += (dx/d) * pull * falloff * dt;
-        p.vy += (dy/d) * pull * falloff * dt;
-        // 一點切線力，形成漩渦
-        p.vx += (-dy/d) * pull * 0.16 * dt;
-        p.vy += ( dx/d) * pull * 0.16 * dt;
-      } else {
-        // 遠場牽引：滿屏靈氣緩緩匯流而來，陣不會吸乾
-        p.vx += (dx/d) * 190 * dt;
-        p.vy += (dy/d) * 190 * dt;
-      }
-      if (d < CORE_R){                                    // 入陣
-        const gain = (p.rare ? 12 : 1) * (0.6 + p.r*0.28);
-        S.tally[p.e] += gain; S.total += gain;
-        S.corePulse = Math.min(1, S.corePulse + (p.rare ? 0.9 : 0.22));
-        const col = p.rare ? '#ffe6a8' : ELEMENTS[p.e].color;
-        for (let k=0;k<(p.rare?14:3);k++) addSpark(S.px, S.py, col);
-        if (p.rare) setTip('得天地元氣一縷 ✦');
-        S.particles[i] = spawnParticle(true);
-        continue;
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if (raw){
+      const d = JSON.parse(raw);
+      if (d && typeof d === 'object'){
+        store.profile = Object.assign(store.profile, d.profile || {});
+        store.entries = Array.isArray(d.entries) ? d.entries : [];
       }
     }
-    // 靈氣自身的游離擾動
-    p.vx += (S.rnd()-0.5)*22*dt;
-    p.vy += (S.rnd()-0.5)*22*dt;
-    p.vx *= (1 - 0.9*dt); p.vy *= (1 - 0.9*dt);
-    const sp2 = p.vx*p.vx + p.vy*p.vy, CAP = 900;      // 限速，避免高速穿陣而過
-    if (sp2 > CAP*CAP){ const k = CAP/Math.sqrt(sp2); p.vx *= k; p.vy *= k; }
-    p.x += p.vx*dt; p.y += p.vy*dt;
-    p.ph += dt*2.4;
-    const m = 40;
-    if (p.x < -m || p.x > W+m || p.y < -m || p.y > H+m) S.particles[i] = spawnParticle(true);
-  }
-
-  // 維持粒子數（受靈氣濃度影響）
-  const want = Math.round(targetCount()*density);
-  if (S.particles.length < want) S.particles.push(spawnParticle(true));
-  else if (S.particles.length > want + 20) S.particles.pop();
-
-  for (let i=S.sparks.length-1;i>=0;i--){
-    const s = S.sparks[i];
-    s.x += s.vx*dt; s.y += s.vy*dt;
-    s.vx *= (1-2.6*dt); s.vy *= (1-2.6*dt);
-    s.life -= dt*1.9;
-    if (s.life <= 0) S.sparks.splice(i,1);
-  }
+  }catch(err){ /* 隱私模式或儲存被封鎖：僅此次有效 */ }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(store)); }
+  catch(err){ toast('這個瀏覽器不讓存資料，本次紀錄關掉就會消失'); }
 }
 
-/* ────────── 繪製 ────────── */
-function draw(){
-  // 拖尾殘影
-  ctx.fillStyle = 'rgba(6,7,13,0.30)';
-  ctx.fillRect(0,0,W,H);
+/* ══════════ 日期工具（一律用本機時區） ══════════ */
+const pad = n => String(n).padStart(2,'0');
+function dayKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function keyOf(ts){ return dayKey(new Date(ts)); }
+function shiftDays(n){ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+n); return d; }
+const WEEK = ['日','一','二','三','四','五','六'];
 
-  ctx.globalCompositeOperation = 'lighter';
-
-  for (const p of S.particles){
-    const img = p.rare ? SPRITE.origin : SPRITE[ELEMENTS[p.e].key];
-    const tw = p.r * (p.rare ? 9 : 7) * (0.85 + 0.15*Math.sin(p.ph));
-    ctx.globalAlpha = p.rare ? 0.95 : 0.62;
-    ctx.drawImage(img, p.x - tw/2, p.y - tw/2, tw, tw);
-  }
-  for (const s of S.sparks){
-    ctx.globalAlpha = Math.max(0, s.life)*0.85;
-    const w = 9*s.life + 2;
-    ctx.drawImage(SPRITE.origin, s.x-w/2, s.y-w/2, w, w);
-  }
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = 'source-over';
-
-  if (S.running && S.hasPointer) drawArray();
+/* ══════════ 推算 ══════════ */
+function energyByDay(){
+  const m = new Map();
+  for (const e of store.entries) m.set(keyOf(e.ts), (m.get(keyOf(e.ts))||0) + e.energy);
+  return m;
 }
-
-function drawArray(){
-  const x = S.px, y = S.py;
-  const hot = S.overheated;
-  const live = S.absorbing && !hot;
-  const accent = hot ? '#ff5340' : '#d8b46a';
-
-  ctx.save();
-  ctx.translate(x,y);
-
-  // 吸取場範圍
-  ctx.beginPath();
-  ctx.arc(0,0,PULL_R,0,Math.PI*2);
-  ctx.strokeStyle = hexA(accent, live ? 0.16 : 0.07);
-  ctx.lineWidth = 1; ctx.stroke();
-
-  // 八卦環
-  const ringR = 64 + (live ? 5*Math.sin(S.t*6) : 0);
-  ctx.rotate(S.spin*0.5);
-  ctx.beginPath(); ctx.arc(0,0,ringR,0,Math.PI*2);
-  ctx.strokeStyle = hexA(accent, live ? 0.55 : 0.25); ctx.lineWidth = 1; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0,0,ringR-9,0,Math.PI*2);
-  ctx.strokeStyle = hexA(accent, live ? 0.22 : 0.1); ctx.stroke();
-
-  ctx.font = '15px serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = hexA(accent, live ? 0.85 : 0.4);
-  for (let i=0;i<8;i++){
-    const a = (i/8)*Math.PI*2;
-    ctx.save();
-    ctx.translate(Math.cos(a)*(ringR+16), Math.sin(a)*(ringR+16));
-    ctx.rotate(a + Math.PI/2);
-    ctx.fillText(TRIGRAMS[i], 0, 0);
-    ctx.restore();
-  }
-
-  // 內圈符線
-  ctx.rotate(-S.spin*1.4);
-  ctx.beginPath();
-  for (let i=0;i<6;i++){
-    const a = (i/6)*Math.PI*2;
-    ctx.moveTo(Math.cos(a)*CORE_R, Math.sin(a)*CORE_R);
-    ctx.lineTo(Math.cos(a+Math.PI*2/3)*CORE_R, Math.sin(a+Math.PI*2/3)*CORE_R);
-  }
-  ctx.strokeStyle = hexA(accent, live ? 0.4 : 0.16); ctx.stroke();
-  ctx.restore();
-
-  // 陣心
-  const pulse = 1 + S.corePulse*0.55;
-  ctx.save(); ctx.translate(x,y);
-  ctx.globalCompositeOperation = 'lighter';
-  const cr = CORE_R*pulse*2.6;
-  ctx.globalAlpha = live ? 0.9 : 0.35;
-  ctx.drawImage(SPRITE.origin, -cr/2, -cr/2, cr, cr);
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.beginPath(); ctx.arc(0,0,CORE_R*0.42*pulse,0,Math.PI*2);
-  ctx.fillStyle = hot ? '#ff5340' : '#fff3d6'; ctx.fill();
-  ctx.restore();
+function todayTotal(){
+  const k = dayKey(new Date());
+  return store.entries.reduce((s,e)=> keyOf(e.ts)===k ? s+e.energy : s, 0);
 }
-
-/* ────────── HUD ────────── */
-const rowsEl = document.getElementById('rows');
-const bars = [];
-ELEMENTS.forEach(e => {
-  const row = document.createElement('div');
-  row.className = 'row';
-  row.innerHTML = `<span class="cn" style="color:${e.color}">${e.cn}</span>
-                   <span class="bar"><i style="background:${e.color}"></i></span>
-                   <span class="num">0</span>`;
-  rowsEl.appendChild(row);
-  bars.push({ fill: row.querySelector('i'), num: row.querySelector('.num') });
-});
-const elTotal = document.getElementById('total');
-const elStage = document.getElementById('stage');
-const elHeatBar = document.getElementById('heatBar');
-const elHeatPct = document.getElementById('heatPct');
-const elHeatLbl = document.getElementById('heatLbl');
-const elHeatBox = document.getElementById('heatBox');
-const elTip = document.getElementById('tip');
-let tipUntil = 0;
-function setTip(msg, hold=2.2){ elTip.textContent = msg; tipUntil = S.t + hold; }
-
+function grandTotal(){ return store.entries.reduce((s,e)=>s+e.energy,0); }
+function streak(){
+  const m = energyByDay();
+  // 今天還沒開張不算斷，一律從昨天往回數
+  let n = m.get(dayKey(shiftDays(0))) ? 1 : 0;
+  for (let i = -1; i > -400; i--){
+    if (!m.get(dayKey(shiftDays(i)))) break;
+    n++;
+  }
+  return n;
+}
 function stageOf(total){
   let name = STAGES[0][1], base = 0, next = STAGES[1][0];
   for (let i=0;i<STAGES.length;i++){
     if (total >= STAGES[i][0]){ name = STAGES[i][1]; base = STAGES[i][0]; next = STAGES[i+1] ? STAGES[i+1][0] : Infinity; }
   }
   const layer = next === Infinity ? 9 : Math.min(9, 1 + Math.floor((total-base)/((next-base)/9)));
-  return { name, layer, next };
+  return { name, layer, next, base };
 }
-const CN_NUM = ['','一','二','三','四','五','六','七','八','九'];
-
-function syncHUD(){
-  const max = Math.max(1, ...S.tally);
-  for (let i=0;i<5;i++){
-    bars[i].fill.style.width = (S.tally[i]/max*100) + '%';
-    bars[i].num.textContent = Math.round(S.tally[i]);
+function elementTotals(days=30){
+  const from = shiftDays(-(days-1)); from.setHours(0,0,0,0);
+  const t = [0,0,0,0,0];
+  for (const e of store.entries){
+    if (e.ts >= from.getTime() && e.elem && IDX[e.elem] !== undefined) t[IDX[e.elem]] += e.energy;
   }
-  elTotal.textContent = Math.round(S.total).toLocaleString('en-US');
-  const st = stageOf(S.total);
-  elStage.innerHTML = `${st.name} <small>· ${CN_NUM[st.layer]}層</small>`;
-  const hp = Math.round(S.heat);
-  elHeatBar.style.width = hp + '%';
-  elHeatPct.textContent = hp + '%';
-  elHeatBox.classList.toggle('hot', S.overheated || hp > 78);
-  elHeatLbl.textContent = S.overheated ? '走火入魔' : '心火';
-  if (S.t > tipUntil){
-    elTip.textContent = S.absorbing ? '靈氣入體，穩住…' : '按住畫面（或長按空白鍵）催動吸取陣';
-  }
+  return t;
 }
 
-/* ────────── 輸入 ────────── */
-function setPointer(e){
-  const t = e.touches ? e.touches[0] : e;
-  S.px = t.clientX; S.py = t.clientY; S.hasPointer = true;
+/* 每日心法：依近 30 日最弱的一行給，同一天結果固定 */
+function hash(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return h>>>0; }
+function todayMantra(){
+  const t = elementTotals(30);
+  let lo = 0;
+  for (let i=1;i<5;i++) if (t[i] < t[lo]) lo = i;
+  const el = ELEMENTS[lo];
+  const h = hash(dayKey(new Date()) + '|' + (store.profile.name||'') + '|' + el.key);
+  return { el, text: el.mantras[h % el.mantras.length] };
 }
-cv.addEventListener('pointerdown', e => { setPointer(e); S.absorbing = true; cv.setPointerCapture?.(e.pointerId); });
-cv.addEventListener('pointermove', setPointer);
-window.addEventListener('pointerup',    () => S.absorbing = false);
-window.addEventListener('pointercancel',() => S.absorbing = false);
-cv.addEventListener('pointerenter', setPointer);
-window.addEventListener('keydown', e => {
-  if (e.code === 'Space' && S.running && !e.repeat){ e.preventDefault(); S.hasPointer = true; S.absorbing = true; }
+
+/* ══════════ 畫面 ══════════ */
+const $ = s => document.querySelector(s);
+const ringFill = $('#ringFill'), CIRC = 2*Math.PI*88;
+
+function render(){
+  const today = todayTotal(), total = grandTotal(), st = stageOf(total), sk = streak();
+
+  $('#nameBtn').textContent = store.profile.name || '無名氏';
+  const now = new Date();
+  $('#dateLbl').textContent = `${dayKey(now)} 週${WEEK[now.getDay()]}`;
+
+  $('#todayVal').textContent = today;
+  $('#goalVal').textContent = GOAL;
+  ringFill.style.strokeDashoffset = CIRC * (1 - Math.min(1, today/GOAL));
+  ringFill.setAttribute('stroke', today >= GOAL ? '#f5bd4a' : 'var(--gold)');
+  $('#stageLbl').innerHTML = `${st.name} · <b>${CN_NUM[st.layer]}層</b>`;
+  $('#subLbl').textContent = `連續 ${sk} 天 · 累積 ${total.toLocaleString('en-US')}`;
+  $('#streakLbl').textContent = `連續 ${sk} 天`;
+
+  const m = todayMantra();
+  $('#mantraTxt').textContent = m.text;
+  $('#mantraTxt').style.color = m.el.color;
+
+  renderFive();
+  renderGrid();
+  renderLog();
+}
+
+function renderFive(){
+  const t = elementTotals(30), max = Math.max(1, ...t), box = $('#fiveRows');
+  box.innerHTML = ELEMENTS.map((e,i) => `
+    <div class="row">
+      <span class="cn" style="color:${e.color}">${e.cn}</span>
+      <span class="tag">${e.tag}</span>
+      <span class="bar"><i style="background:${e.color};width:${t[i]/max*100}%"></i></span>
+      <span class="n mono">${t[i]}</span>
+    </div>`).join('');
+
+  const sum = t.reduce((a,b)=>a+b,0);
+  const hint = $('#fiveHint');
+  if (!sum){ hint.innerHTML = '還沒開始納氣。今天先記一件小事，這裡就會亮起來。'; return; }
+  let hi=0, lo=0;
+  for (let i=1;i<5;i++){ if (t[i]>t[hi]) hi=i; if (t[i]<t[lo]) lo=i; }
+  const weak = ELEMENTS[lo], remedy = BY(SHENG_FROM[weak.key]);
+  hint.innerHTML =
+    `你這陣子<b>${ELEMENTS[hi].cn}</b>氣最旺（${ELEMENTS[hi].tag}），<b>${weak.cn}</b>氣最虛。` +
+    `五行相生，<b>${remedy.cn}生${weak.cn}</b>——這幾天試試「${remedy.advice[0]}」或「${remedy.advice[1]}」，${weak.cn}氣就會慢慢補回來。`;
+}
+
+function renderGrid(){
+  const m = energyByDay(), box = $('#grid28');
+  let html = '';
+  for (let i=-27;i<=0;i++){
+    const d = shiftDays(i), k = dayKey(d), v = m.get(k) || 0;
+    const a = v ? Math.min(1, 0.22 + (v/GOAL)*0.78) : 0;
+    const bg = v ? `rgba(217,185,120,${a.toFixed(2)})` : 'rgba(255,255,255,.045)';
+    html += `<i class="${i===0?'today':''}" style="background:${bg}" title="${k} · ${v}"></i>`;
+  }
+  box.innerHTML = html;
+  $('#gridFrom').textContent = dayKey(shiftDays(-27));
+}
+
+function renderLog(){
+  const k = dayKey(new Date());
+  const list = store.entries.filter(e => keyOf(e.ts)===k).sort((a,b)=>b.ts-a.ts);
+  $('#logCount').textContent = `${list.length} 筆`;
+  const box = $('#logBody');
+  if (!list.length){
+    box.innerHTML = '<p class="empty">今日尚未納氣 —— 再小的事都算數。</p>';
+    return;
+  }
+  box.innerHTML = '<ul>' + list.map(e => {
+    const color = e.elem ? BY(e.elem).color : (e.kind==='transmute' ? '#c9a2ff' : '#59c6ff');
+    const time = new Date(e.ts);
+    const label = e.kind === 'transmute' ? '化煞' : e.kind === 'breath' ? '調息一分鐘' : e.label;
+    const note = e.note ? ` <em>· ${esc(e.note)}</em>` : '';
+    return `<li>
+      <span class="dot" style="background:${color}"></span>
+      <span class="txt">${esc(label)}${note}</span>
+      <span class="val mono">+${e.energy}</span>
+      <span class="mono" style="color:var(--ink-3);font-size:10px">${pad(time.getHours())}:${pad(time.getMinutes())}</span>
+      <button class="del" data-del="${e.ts}" title="刪除" aria-label="刪除這筆">×</button>
+    </li>`;
+  }).join('') + '</ul>';
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ══════════ 記一筆 ══════════ */
+function addEntry(e){
+  const st0 = stageOf(grandTotal());
+  store.entries.push(e);
+  save();
+  burst(e.elem ? BY(e.elem).color : (e.kind==='transmute' ? '#c9a2ff' : '#59c6ff'));
+  const wasBelow = todayTotal() - e.energy < GOAL;
+  render();
+  const st1 = stageOf(grandTotal());
+  if (st1.name !== st0.name) toast(`境界提升 —— ${st1.name}`);
+  else if (wasBelow && todayTotal() >= GOAL) toast('今日圓滿，能量已滿陣 ✦');
+  else toast(`納入 +${e.energy}`);
+}
+
+/* ══════════ 對話框 ══════════ */
+function open(id){ $(id).classList.add('on'); }
+function close(id){ $(id).classList.remove('on'); }
+document.addEventListener('click', ev => {
+  const c = ev.target.closest('[data-close]');
+  if (!c) return;
+  const v = c.closest('.veil');
+  if (v.id === 'vBreath') resetBreath();
+  close('#' + v.id);
 });
-window.addEventListener('keyup', e => { if (e.code === 'Space') S.absorbing = false; });
-window.addEventListener('blur', () => S.absorbing = false);
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape'){
+    document.querySelectorAll('.veil.on').forEach(v => {
+      if (v.id === 'vName' && !store.profile.name) return;   // 尚未開光不給關
+      v.classList.remove('on');
+    });
+    stopBreath();
+  }
+});
 
-/* ────────── 開光 ────────── */
-const setupVeil = document.getElementById('setup');
-const inName = document.getElementById('inName');
-const inBirth = document.getElementById('inBirth');
-
-function ignite(){
-  const name = (inName.value.trim() || '無名氏');
-  const birth = inBirth.value || '';
-  const today = new Date().toISOString().slice(0,10);
-  S.seed = hashStr(name + '|' + birth + '|' + today);
-  S.rnd = mulberry32(S.seed);
-  S.natal = ELEMENTS[S.seed % 5].key;
-  S.profile = { name, birth, today };
-
-  // 本命五行靈氣較盛，被剋者較稀
-  const natal = S.natal, weak = KE[natal];
-  S.weights = ELEMENTS.map(e => e.key === natal ? 2.1 : e.key === weak ? 0.55 : 1);
-
-  S.tally = [0,0,0,0,0]; S.total = 0; S.heat = 0; S.overheated = false;
-  S.startedAt = S.t;
-  seedField();
-  S.running = true;
-  setupVeil.classList.remove('on');
-  setTip(`${name}，本命屬${BY(natal).cn}，${BY(natal).dir}方靈氣最盛`, 4.5);
+/* 開光／改名 */
+$('#nameBtn').addEventListener('click', () => { $('#nameIn').value = store.profile.name || ''; open('#vName'); $('#nameIn').focus(); });
+function commitName(){
+  const v = $('#nameIn').value.trim() || '無名氏';
+  store.profile.name = v;
+  if (!store.profile.since) store.profile.since = dayKey(new Date());
+  save(); close('#vName'); render();
 }
-document.getElementById('start').addEventListener('click', ignite);
-[inName, inBirth].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') ignite(); }));
+$('#nameOk').addEventListener('click', commitName);
+$('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') commitName(); });
 
-/* ────────── 收功結印 · 能量報告 ────────── */
-const reportVeil = document.getElementById('report');
-const reportCard = document.getElementById('reportCard');
+/* 納氣 */
+let picked = null;
+function buildGain(){
+  $('#gainGroups').innerHTML = ELEMENTS.map(e => `
+    <div class="grp">
+      <div class="head"><span class="cn" style="color:${e.color}">${e.cn}</span><span class="nm">${e.tag}</span></div>
+      <div class="chips">
+        ${e.sources.map(s => `<button class="chip" data-el="${e.key}" data-src="${esc(s)}">${esc(s)}</button>`).join('')}
+      </div>
+    </div>`).join('');
+  $('#gainGroups').addEventListener('click', ev => {
+    const chip = ev.target.closest('.chip');
+    if (!chip) return;
+    $('#gainGroups').querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
+    chip.classList.add('on');
+    picked = { elem: chip.dataset.el, label: chip.dataset.src };
+    $('#gainOk').disabled = false;
+  });
+}
+$('.acts').addEventListener('click', ev => {
+  const b = ev.target.closest('.act'); if (!b) return;
+  const a = b.dataset.act;
+  if (a === 'gain'){
+    picked = null; $('#gainOk').disabled = true; $('#gainNote').value = '';
+    $('#gainGroups').querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
+    open('#vGain');
+  } else if (a === 'transmute'){
+    showStep(0); $('#transTxt').value = ''; $('#transAns').value = '';
+    open('#vTrans'); $('#transTxt').focus();
+  } else {
+    resetBreath(); open('#vBreath');
+  }
+});
+$('#gainOk').addEventListener('click', () => {
+  if (!picked) return;
+  const note = $('#gainNote').value.trim();
+  addEntry({ ts:Date.now(), kind:'gain', elem:picked.elem, label:picked.label, note, energy:VAL.gain });
+  close('#vGain');
+});
+$('#gainNote').addEventListener('keydown', e => { if (e.key === 'Enter' && picked) $('#gainOk').click(); });
 
-function makeReport(){
-  const sum = S.total || 1;
-  const pct = S.tally.map(v => v/sum);
-  let hi = 0, lo = 0;
-  for (let i=1;i<5;i++){ if (S.tally[i] > S.tally[hi]) hi = i; if (S.tally[i] < S.tally[lo]) lo = i; }
-  const dom = ELEMENTS[hi], weak = ELEMENTS[lo];
-  const mean = 0.2;
-  const dev = Math.sqrt(pct.reduce((a,p)=>a+(p-mean)**2,0)/5);
-  const balance = Math.max(0, Math.min(100, Math.round((1 - dev/0.35)*100)));
-  const st = stageOf(S.total);
-  const rnd = mulberry32(S.seed ^ Math.round(S.total));
-  const poem = POEMS[Math.floor(rnd()*POEMS.length)];
-  const shi = SHICHEN[Math.floor(rnd()*SHICHEN.length)];
-  const remedy = BY(Object.keys(SHENG).find(k => SHENG[k] === weak.key));  // 生「最弱者」的那一行
-  const secs = Math.max(1, Math.round(S.t - S.startedAt));
-  const rate = (S.total/secs).toFixed(1);
-  return { dom, weak, remedy, balance, st, poem, shi, pct, secs, rate };
+/* 化煞 */
+function showStep(n){
+  document.querySelectorAll('#vTrans .step').forEach(s => s.classList.toggle('on', +s.dataset.step === n));
+  $('#transLede').textContent = ['把卡住你的事寫下來','換個角度看它一眼','決定要不要留著'][n];
+}
+function pickQuestion(){
+  $('#transQ').textContent = QUESTIONS[Math.floor(Math.random()*QUESTIONS.length)];
+}
+$('#transNext1').addEventListener('click', () => {
+  if (!$('#transTxt').value.trim()){ toast('寫一句就好，寫出來煞氣就鬆一半'); return; }
+  pickQuestion(); showStep(1); $('#transAns').focus();
+});
+$('#transQAgain').addEventListener('click', pickQuestion);
+$('#transNext2').addEventListener('click', () => showStep(2));
+function finishTrans(keep){
+  const note = keep ? ($('#transAns').value.trim() || $('#transTxt').value.trim()).slice(0,60) : '';
+  addEntry({ ts:Date.now(), kind:'transmute', elem:'water', label:'化煞', note, energy:VAL.transmute });
+  close('#vTrans');
+  if (!keep) toast('煞氣已焚化 · +' + VAL.transmute);
+}
+$('#transBurn').addEventListener('click', () => finishTrans(false));
+$('#transKeep').addEventListener('click', () => finishTrans(true));
+
+/* 調息 */
+const PHASES = [['in','吸 氣',4000],['hold','屏 息',4000],['out','吐 氣',6000]];
+const CYCLES = 4;
+let bTimer = null, bCycle = 0, bPhase = 0, bRunning = false;
+function resetBreath(){
+  stopBreath(); bCycle = 0; bPhase = 0;
+  $('#orb').className = 'orb'; $('#orbPh').textContent = '準備';
+  $('#orbCyc').textContent = `第 0 ／ ${CYCLES} 息`;
+  $('#breathStart').textContent = '起 息'; $('#breathStart').disabled = false;
+}
+function stopBreath(){ bRunning = false; clearTimeout(bTimer); bTimer = null; }
+function stepBreath(){
+  if (!bRunning) return;
+  const [cls, label, ms] = PHASES[bPhase];
+  $('#orb').className = 'orb ' + cls;
+  $('#orbPh').textContent = label;
+  $('#orbCyc').textContent = `第 ${Math.min(bCycle+1, CYCLES)} ／ ${CYCLES} 息`;
+  bTimer = setTimeout(() => {
+    bPhase++;
+    if (bPhase >= PHASES.length){
+      bPhase = 0; bCycle++;
+      if (bCycle >= CYCLES){
+        stopBreath();
+        $('#orbPh').textContent = '圓 滿';
+        $('#orb').className = 'orb hold';
+        addEntry({ ts:Date.now(), kind:'breath', elem:'water', label:'調息一分鐘', note:'', energy:VAL.breath });
+        setTimeout(() => { close('#vBreath'); resetBreath(); }, 1100);
+        return;
+      }
+    }
+    stepBreath();
+  }, ms);
+}
+$('#breathStart').addEventListener('click', () => {
+  if (bRunning) return;
+  bRunning = true; bCycle = 0; bPhase = 0;
+  $('#breathStart').disabled = true; $('#breathStart').textContent = '進行中';
+  stepBreath();
+});
+$('#breathStop').addEventListener('click', () => { resetBreath(); close('#vBreath'); });
+
+/* 刪除單筆 */
+$('#logBody').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-del]'); if (!b) return;
+  const ts = +b.dataset.del;
+  store.entries = store.entries.filter(e => e.ts !== ts);
+  save(); render(); toast('已撤回一筆');
+});
+
+/* 匯出／清空 */
+$('#exportBtn').addEventListener('click', async () => {
+  const json = JSON.stringify(store, null, 2);
+  try{ await navigator.clipboard.writeText(json); toast('紀錄已複製到剪貼簿'); }
+  catch(err){ toast('複製失敗，可在瀏覽器主控台用 localStorage 取出'); }
+});
+let resetArmed = null;
+$('#resetBtn').addEventListener('click', () => {
+  const b = $('#resetBtn');
+  if (!resetArmed){                                   // 兩段式確認，不依賴 confirm()
+    b.textContent = '再按一次確認清空';
+    b.style.color = 'var(--fire)';
+    resetArmed = setTimeout(() => { resetArmed = null; b.textContent = '清空重修'; b.style.color = ''; }, 4000);
+    return;
+  }
+  clearTimeout(resetArmed); resetArmed = null;
+  b.textContent = '清空重修'; b.style.color = '';
+  store.entries = []; save(); render(); toast('前塵已清，重新開始');
+});
+
+/* 吐司 */
+let toastTimer = null;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 2400);
 }
 
-function showReport(){
-  if (!S.running) return;
-  const r = makeReport();
-  const name = S.profile?.name || '無名氏';
-  const distBars = ELEMENTS.map((e,i) =>
-    `<span style="background:${e.color};width:${Math.max(0.6, r.pct[i]*100)}%"></span>`).join('');
-  const distKey = ELEMENTS.map((e,i) =>
-    `<span style="color:${e.color}">${e.cn} ${Math.round(r.pct[i]*100)}%</span>`).join('');
-
-  reportCard.innerHTML = `
-    <h2>能 量 報 告</h2>
-    <p class="sub">${name} · ${S.profile?.today || ''}</p>
-    <div class="verdict">
-      <div class="elem" style="color:${r.dom.color}">${r.dom.cn}</div>
-      <div class="name">主導靈氣 · <b>${r.st.name}${CN_NUM[r.st.layer]}層</b></div>
-    </div>
-    <div class="dist">${distBars}</div>
-    <div class="distkey">${distKey}</div>
-    <div class="grid">
-      <div class="cell"><div class="k">開運色</div><div class="v">${r.dom.colorName}</div></div>
-      <div class="cell"><div class="k">吉位</div><div class="v">${r.dom.dir}方</div></div>
-      <div class="cell"><div class="k">旺時</div><div class="v">${r.shi}</div></div>
-      <div class="cell"><div class="k">幸運數</div><div class="v">${r.dom.num}</div></div>
-      <div class="cell"><div class="k">五行平衡</div><div class="v">${r.balance} 分</div></div>
-      <div class="cell"><div class="k">納氣效率</div><div class="v">${r.rate} / 秒</div></div>
-    </div>
-    <p class="poem">${r.poem}</p>
-    <p class="advice">
-      本輪共納靈氣 <b>${Math.round(S.total).toLocaleString('en-US')}</b> 縷，歷時 <b>${r.secs}</b> 秒。<br>
-      ${r.dom.cn}氣獨盛，宜守 <b>${r.dom.dir}方</b>、多用 <b>${r.dom.colorName}</b>，養 <b>${r.dom.organ}</b>。<br>
-      ${r.weak.cn}氣偏虛，可借 <b>${r.remedy.cn}</b> 以生之——親近 <b>${r.remedy.colorName}</b> 之物、常往 <b>${r.remedy.dir}方</b> 走動。<br>
-      ${r.balance >= 70 ? '五行調和，氣機圓融，宜靜守勿貪。' : '五行偏枯，下輪可換方位吸取，補其不足。'}
-    </p>
-    <div class="cta">
-      <button class="btn" id="again">再 吸 一 輪</button>
-      <button class="btn" id="close">收 好</button>
-    </div>
-    <p class="fine">本報告由靈氣分佈與生辰種子推算，純屬娛樂。</p>
-  `;
-  reportVeil.classList.add('on');
-  S.absorbing = false;
-  document.getElementById('again').onclick = () => {
-    reportVeil.classList.remove('on');
-    S.tally = [0,0,0,0,0]; S.total = 0; S.heat = 0; S.overheated = false; S.startedAt = S.t;
-    seedField(); setTip('重起爐灶，再納一輪', 2.5);
-  };
-  document.getElementById('close').onclick = () => reportVeil.classList.remove('on');
+/* ══════════ 背景靈氣 ══════════ */
+const cv = $('#aura'), ctx = cv.getContext('2d');
+let W=0, H=0, parts=[], sparks=[], sprites={};
+function sprite(color){
+  const s=40, c=document.createElement('canvas'); c.width=c.height=s;
+  const g=c.getContext('2d'), n=parseInt(color.slice(1),16);
+  const rgb=`${(n>>16)&255},${(n>>8)&255},${n&255}`;
+  const gr=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  gr.addColorStop(0,`rgba(${rgb},.9)`); gr.addColorStop(.35,`rgba(${rgb},.35)`); gr.addColorStop(1,`rgba(${rgb},0)`);
+  g.fillStyle=gr; g.fillRect(0,0,s,s); return c;
 }
-document.getElementById('finish').addEventListener('click', showReport);
-
-/* ────────── 主迴圈 ────────── */
+function resize(){
+  const dpr = Math.min(devicePixelRatio||1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W*dpr; cv.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function initAura(){
+  for (const e of ELEMENTS) sprites[e.key] = sprite(e.color);
+  sprites.spark = sprite('#ffe6a8');
+  sprites.violet = sprite('#c9a2ff');
+  sprites.blue = sprite('#59c6ff');
+  resize();
+  const n = Math.round(Math.min(70, W*H/16000));
+  parts = Array.from({length:n}, () => newPart());
+  addEventListener('resize', resize);
+  requestAnimationFrame(loop);
+}
+function newPart(){
+  const e = ELEMENTS[Math.floor(Math.random()*5)];
+  return { k:e.key, x:Math.random()*W, y:Math.random()*H,
+           vx:(Math.random()-.5)*7, vy:-4-Math.random()*9,
+           r:1.2+Math.random()*2.2, a:.18+Math.random()*.3, ph:Math.random()*6.3 };
+}
+function burst(color){
+  const r = $('.ringwrap').getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  const key = color === '#c9a2ff' ? 'violet' : color === '#59c6ff' ? 'blue'
+            : (ELEMENTS.find(e => e.color === color)?.key || 'spark');
+  for (let i=0;i<26;i++){
+    const a = Math.random()*Math.PI*2, d = 90 + Math.random()*150;
+    sparks.push({ k:key, x:cx+Math.cos(a)*d, y:cy+Math.sin(a)*d, tx:cx, ty:cy, t:0,
+                  sp:.55+Math.random()*.6, r:2+Math.random()*3 });
+  }
+}
 let last = performance.now();
-function frame(now){
-  const dt = Math.min(0.05, (now - last)/1000);
-  last = now;
-  update(dt);
-  draw();
-  syncHUD();
-  requestAnimationFrame(frame);
+function loop(now){
+  const dt = Math.min(.05, (now-last)/1000); last = now;
+  ctx.clearRect(0,0,W,H);
+  ctx.globalCompositeOperation = 'lighter';
+
+  for (const p of parts){
+    p.ph += dt*1.6;
+    p.x += (p.vx + Math.sin(p.ph)*4)*dt;
+    p.y += p.vy*dt;
+    if (p.y < -30 || p.x < -30 || p.x > W+30){ Object.assign(p, newPart(), { y:H+20 }); }
+    ctx.globalAlpha = p.a * (.65 + .35*Math.sin(p.ph));
+    const w = p.r*7;
+    ctx.drawImage(sprites[p.k], p.x-w/2, p.y-w/2, w, w);
+  }
+  for (let i=sparks.length-1;i>=0;i--){
+    const s = sparks[i];
+    s.t += dt*s.sp;
+    if (s.t >= 1){ sparks.splice(i,1); continue; }
+    const e = 1-Math.pow(1-s.t, 3);           // 收束進陣心
+    const x = s.x + (s.tx-s.x)*e, y = s.y + (s.ty-s.y)*e;
+    ctx.globalAlpha = (1-s.t)*.85;
+    const w = s.r*(1-s.t*.5)*8;
+    ctx.drawImage(sprites[s.k] || sprites.spark, x-w/2, y-w/2, w, w);
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  requestAnimationFrame(loop);
 }
 
-makeSprites();
-resize();
-seedField();
-inBirth.value = '';
-requestAnimationFrame(frame);
+/* ══════════ 起手 ══════════ */
+load();
+buildGain();
+render();
+initAura();
+if (!store.profile.name){ open('#vName'); setTimeout(()=>$('#nameIn').focus(), 60); }
 })();
 </script>
 </body>
