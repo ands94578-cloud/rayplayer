@@ -205,6 +205,53 @@
   .sos b{font-weight:400;color:#ff7a63;letter-spacing:.26em;text-indent:.26em;font-size:14px}
   .sos small{color:var(--ink-3);font-size:11px;letter-spacing:.06em}
 
+  /* 採氣入口 */
+  .scan{
+    display:flex;align-items:center;justify-content:center;gap:12px;width:100%;
+    border:1px solid var(--edge);border-radius:3px;background:rgba(217,185,120,.05);
+    padding:12px 14px;transition:.16s;
+  }
+  .scan:hover{background:rgba(217,185,120,.11);border-color:rgba(217,185,120,.5)}
+  .scan b{font-weight:400;color:var(--gold);letter-spacing:.26em;text-indent:.26em;font-size:14px}
+  .scan small{color:var(--ink-3);font-size:11px;letter-spacing:.06em}
+
+  /* ── 採氣（相機） ── */
+  .ar{position:fixed;inset:0;z-index:30;display:none;background:#000}
+  .ar.on{display:block}
+  .ar video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;filter:brightness(.72) saturate(1.06) contrast(1.04)}
+  .ar::after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 85% at 50% 50%,transparent 35%,rgba(4,5,9,.62) 100%)}
+  .ar canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .arhud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
+  .arhud .read{
+    margin:max(12px,env(safe-area-inset-top)) 12px 0;padding:12px 14px;border-radius:3px;
+    background:rgba(6,7,13,.55);backdrop-filter:blur(8px);border:1px solid rgba(217,185,120,.16);
+  }
+  .arhud .read .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .arhud .read .hd b{font-weight:400;font-size:11px;letter-spacing:.3em;color:var(--gold)}
+  .arhud .read .hd span{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.08em}
+  .arfive{display:flex;gap:5px}
+  .arfive .c{flex:1;text-align:center}
+  .arfive .c .b{height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden;margin-bottom:4px}
+  .arfive .c .b i{display:block;height:100%;width:0;transition:width .3s}
+  .arfive .c span{font-size:11px}
+  .armeter{display:flex;gap:14px;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--ink-2);letter-spacing:.08em}
+  .armeter b{font-weight:400;color:var(--gold)}
+  .arbottom{
+    margin:0 12px max(14px,env(safe-area-inset-bottom));padding:14px;border-radius:3px;
+    background:rgba(6,7,13,.55);backdrop-filter:blur(8px);border:1px solid rgba(217,185,120,.16);
+    display:flex;align-items:center;gap:14px;pointer-events:auto;
+  }
+  .arbottom .n{font-family:var(--mono);font-size:30px;color:var(--gold);line-height:1}
+  .arbottom .n em{font-style:normal;font-size:11px;color:var(--ink-3);margin-left:4px}
+  .arbottom .tip{flex:1;font-size:11.5px;color:var(--ink-2);letter-spacing:.06em;line-height:1.6}
+  .arbottom .btn{flex:none;padding:10px 16px;font-size:12px;letter-spacing:.2em;text-indent:.2em}
+  .arclose{
+    position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;z-index:2;pointer-events:auto;
+    width:34px;height:34px;border-radius:50%;background:rgba(6,7,13,.6);color:var(--ink);
+    font-size:19px;line-height:1;border:1px solid rgba(255,255,255,.12);
+  }
+
   /* 提示橫幅 */
   .banner{
     display:none;align-items:center;gap:12px;border:1px solid var(--edge);border-radius:3px;
@@ -288,6 +335,10 @@
     <button class="act" data-act="transmute"><span class="glyph">化煞</span><small>轉化一件煩心事</small></button>
     <button class="act" data-act="breath"><span class="glyph">調息</span><small>一分鐘呼吸</small></button>
   </div>
+
+  <button class="scan" id="scanBtn">
+    <b>採 氣</b><small>用鏡頭掃描此地靈氣</small>
+  </button>
 
   <button class="sos" id="sosBtn">
     <b>急 救</b><small>心裡很亂？三息 → 化煞，一分鐘</small>
@@ -406,6 +457,40 @@
       <button class="btn ghost" id="breathStop">收 功</button>
       <button class="btn" id="breathStart">起 息</button>
     </div>
+  </div>
+</div>
+
+<!-- 採氣（相機） -->
+<div class="ar" id="ar">
+  <video id="arVid" playsinline muted autoplay></video>
+  <canvas id="arCv"></canvas>
+  <button class="arclose" id="arClose" aria-label="離開">×</button>
+  <div class="arhud">
+    <div class="read">
+      <div class="hd"><b>此 地 靈 氣</b><span id="arScan">掃描中…</span></div>
+      <div class="arfive" id="arFive"></div>
+      <div class="armeter">
+        <span>陽氣 <b id="arSun">0%</b></span>
+        <span>動氣 <b id="arMove">0%</b></span>
+        <span>地氣 <b id="arDom">—</b></span>
+      </div>
+    </div>
+    <div class="arbottom">
+      <div class="n mono"><span id="arGain">0</span><em>縷</em></div>
+      <div class="tip" id="arTip">按住畫面，把此地靈氣吸進陣心</div>
+      <button class="btn" id="arFinish">收 功</button>
+    </div>
+  </div>
+</div>
+
+<!-- 採氣報告 -->
+<div class="veil" id="vScan">
+  <div class="sheet">
+    <button class="x" data-close aria-label="關閉">×</button>
+    <h3>採 氣 報 告</h3>
+    <p class="lede" id="scanLede">—</p>
+    <div id="scanBody"></div>
+    <div class="btnrow"><button class="btn" data-close>收 好</button></div>
   </div>
 </div>
 
@@ -532,6 +617,7 @@ const STAGES = [
 const CN_NUM = ['','一','二','三','四','五','六','七','八','九'];
 const GOAL = 60;
 const VAL = { gain:10, transmute:25, breath:15, sos:35 };
+const AR_MAX = 40;                                   // 一次採氣最多換得的能量
 const CALM = [
   '過去了。剛剛那口氣，你自己撐住了。',
   '事情還在，但你已經不在它裡面了。',
@@ -739,6 +825,7 @@ document.addEventListener('keydown', ev => {
       v.classList.remove('on');
     });
     resetBreath(); breathSos.stop();
+    if (AR.on) arClose();
   }
 });
 
@@ -910,6 +997,326 @@ $('#sosQAgain').addEventListener('click', () => {
 });
 $('#sosDone').addEventListener('click', () => sosStep(3));
 
+
+/* ══════════ 採氣：用相機讀此地靈氣 ══════════
+   相機每一幀都是真的訊號：
+   · 顏色 → 五行（青綠木、赤紅火、黃褐土、亮白金、暗藍水）
+   · 亮度 → 陽氣（越亮的地方靈氣越足）
+   · 幀差 → 動氣（有東西在動，氣就活）
+   靈氣粒子從畫面中「氣最盛」的格子冒出來，所以你對著什麼，就吸到什麼。 */
+const AR = {
+  on:false, stream:null, raf:0, t:0, spin:0,
+  W:0, H:0, dpr:1,
+  cols:48, rows:36, prev:null, emap:null, score:null,
+  w:[0,0,0,0,0], luma:0, motion:0, ready:false,
+  parts:[], sparks:[], absorbing:false, px:0, py:0,
+  gain:0, tally:[0,0,0,0,0], sunSum:0, moveSum:0, samples:0, core:0,
+};
+const arVid = $('#arVid'), arCv = $('#arCv'), arCtx = arCv.getContext('2d');
+const ana = document.createElement('canvas');
+ana.width = AR.cols; ana.height = AR.rows;
+const anaCtx = ana.getContext('2d', { willReadFrequently:true });
+
+/* 顏色 → 五行 */
+function classify(r,g,b){
+  const mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn;
+  const l = 0.2126*r + 0.7152*g + 0.0722*b;
+  const sat = mx ? d/mx : 0;
+  if (sat < 0.16) return l > 165 ? 0 : l < 65 ? 2 : 4;      // 白金 · 黑水 · 灰土
+  let h;
+  if (mx === r) h = ((g-b)/d) % 6;
+  else if (mx === g) h = (b-r)/d + 2;
+  else h = (r-g)/d + 4;
+  h *= 60; if (h < 0) h += 360;
+  if (h < 20 || h >= 335) return 3;                          // 赤 → 火
+  if (h < 45) return 4;                                      // 黃褐 → 土
+  if (h < 170) return 1;                                     // 青綠 → 木
+  if (h < 300) return 2;                                     // 藍靛 → 水
+  return 3;                                                  // 紫紅 → 火
+}
+
+function arAnalyze(){
+  if (!arVid.videoWidth) return;
+  const C = AR.cols, R = AR.rows, N = C*R;
+  // 依照 object-fit:cover 的裁切取樣，格子才會對得上螢幕上看到的畫面
+  const vw = arVid.videoWidth, vh = arVid.videoHeight;
+  const scale = Math.max(AR.W/vw, AR.H/vh);
+  const sw = Math.min(vw, AR.W/scale), sh = Math.min(vh, AR.H/scale);
+  anaCtx.drawImage(arVid, (vw-sw)/2, (vh-sh)/2, sw, sh, 0, 0, C, R);
+  let img;
+  try{ img = anaCtx.getImageData(0, 0, C, R); }
+  catch(err){ return; }                                       // 跨來源污染：放棄分析
+  const d = img.data;
+  if (!AR.emap){ AR.emap = new Uint8Array(N); AR.score = new Float32Array(N); }
+  const cur = new Float32Array(N), w = [0,0,0,0,0];
+  let lumaSum = 0, moveSum = 0;
+  for (let p=0, i=0; p<N; p++, i+=4){
+    const r = d[i], g = d[i+1], b = d[i+2];
+    const l = 0.2126*r + 0.7152*g + 0.0722*b;
+    const mx = Math.max(r,g,b), mn = Math.min(r,g,b);
+    const sat = mx ? (mx-mn)/mx : 0;
+    const e = classify(r,g,b);
+    const wt = (l/255) * (0.35 + 0.65*sat);
+    cur[p] = l; lumaSum += l; w[e] += wt;
+    let m = 0;
+    if (AR.prev) m = Math.abs(l - AR.prev[p]) / 255;
+    moveSum += m;
+    AR.emap[p] = e;
+    AR.score[p] = wt + m*2.4 + 0.02;
+  }
+  AR.prev = cur;
+  const sum = w.reduce((a,b)=>a+b,0) || 1;
+  for (let i=0;i<5;i++) AR.w[i] = AR.w[i]*0.72 + (w[i]/sum)*0.28;   // 平滑，避免抖動
+  AR.luma   = AR.luma*0.8   + (lumaSum/N/255)*0.2;
+  AR.motion = AR.motion*0.75 + Math.min(1, (moveSum/N)*9)*0.25;
+  AR.ready = true;
+  AR.sunSum += AR.luma; AR.moveSum += AR.motion; AR.samples++;
+}
+
+/* 從「氣最盛」的格子挑一個冒出來（八選一錦標賽） */
+function arSpawn(){
+  const C = AR.cols, R = AR.rows, N = C*R;
+  let best = -1, bs = -1;
+  for (let k=0;k<8;k++){
+    const i = (Math.random()*N)|0;
+    if (AR.score[i] > bs){ bs = AR.score[i]; best = i; }
+  }
+  const cx = (best % C + Math.random()) / C * AR.W;
+  const cy = ((best / C)|0) + Math.random();
+  return {
+    e: AR.emap[best], x: cx, y: cy / R * AR.H,
+    vx:(Math.random()-.5)*22, vy:(Math.random()-.5)*22,
+    r: 1.4 + Math.random()*2.4 + bs*1.6, ph: Math.random()*6.3, life: 1,
+  };
+}
+
+function arResize(){
+  AR.dpr = Math.min(devicePixelRatio || 1, 2);
+  AR.W = innerWidth; AR.H = innerHeight;
+  arCv.width = AR.W*AR.dpr; arCv.height = AR.H*AR.dpr;
+  arCtx.setTransform(AR.dpr,0,0,AR.dpr,0,0);
+  if (!AR.px){ AR.px = AR.W/2; AR.py = AR.H/2; }
+}
+
+let arLast = 0, arFrame = 0;
+function arLoop(now){
+  if (!AR.on) return;
+  const dt = Math.min(.05, (now - arLast)/1000); arLast = now; AR.t += dt;
+  if ((arFrame++ % 3) === 0) arAnalyze();
+  AR.spin += dt * (AR.absorbing ? 1.4 : .35);
+  AR.core = Math.max(0, AR.core - dt*3);
+
+  // 靈氣濃度隨陽氣與動氣起伏
+  const want = Math.round(24 + AR.luma*54 + AR.motion*36);
+  if (AR.ready && AR.parts.length < want) AR.parts.push(arSpawn());
+
+  const PULL = Math.min(AR.W, AR.H) * 0.42, CORE = 34;
+  for (let i=AR.parts.length-1;i>=0;i--){
+    const p = AR.parts[i];
+    if (AR.absorbing){
+      const dx = AR.px-p.x, dy = AR.py-p.y, d2 = dx*dx+dy*dy, d = Math.sqrt(d2)||1;
+      if (d < CORE){
+        const g = 1;
+        AR.gain += g; AR.tally[p.e] += g;
+        AR.core = Math.min(1, AR.core + .3);
+        for (let k=0;k<4;k++) arSparkAt(AR.px, AR.py, ELEMENTS[p.e].color);
+        AR.parts.splice(i,1); continue;
+      }
+      if (d < PULL){
+        const f = 16000000 / Math.max(d2, 900);
+        p.vx += (dx/d)*f*dt; p.vy += (dy/d)*f*dt;
+        p.vx += (-dy/d)*f*.16*dt; p.vy += (dx/d)*f*.16*dt;
+      } else {
+        p.vx += (dx/d)*170*dt; p.vy += (dy/d)*170*dt;
+      }
+    } else {
+      p.vx += (Math.random()-.5)*26*dt; p.vy += (Math.random()-.5)*26*dt - 6*dt;
+      p.life -= dt*.16;
+      if (p.life <= 0){ AR.parts.splice(i,1); continue; }
+    }
+    p.vx *= (1-.9*dt); p.vy *= (1-.9*dt);
+    const sp2 = p.vx*p.vx + p.vy*p.vy;
+    if (sp2 > 810000){ const k = 900/Math.sqrt(sp2); p.vx *= k; p.vy *= k; }
+    p.x += p.vx*dt; p.y += p.vy*dt; p.ph += dt*2.4;
+    const m = 60;
+    if (p.x < -m || p.x > AR.W+m || p.y < -m || p.y > AR.H+m) AR.parts.splice(i,1);
+  }
+  for (let i=AR.sparks.length-1;i>=0;i--){
+    const s = AR.sparks[i];
+    s.x += s.vx*dt; s.y += s.vy*dt; s.vx *= (1-2.6*dt); s.vy *= (1-2.6*dt);
+    s.life -= dt*2;
+    if (s.life <= 0) AR.sparks.splice(i,1);
+  }
+
+  arDraw();
+  arHud();
+  AR.raf = requestAnimationFrame(arLoop);
+}
+function arSparkAt(x,y,color){
+  const a = Math.random()*Math.PI*2, sp = 40+Math.random()*110;
+  AR.sparks.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1,
+                   k: ELEMENTS.find(e=>e.color===color)?.key || 'spark' });
+}
+
+function arDraw(){
+  arCtx.clearRect(0,0,AR.W,AR.H);
+  arCtx.globalCompositeOperation = 'lighter';
+  for (const p of AR.parts){
+    const img = sprites[ELEMENTS[p.e].key];
+    const w = p.r*7*(.85+.15*Math.sin(p.ph));
+    arCtx.globalAlpha = Math.min(1, p.life)*.92;
+    arCtx.drawImage(img, p.x-w/2, p.y-w/2, w, w);
+  }
+  for (const s of AR.sparks){
+    arCtx.globalAlpha = Math.max(0,s.life)*.9;
+    const w = 10*s.life+3;
+    arCtx.drawImage(sprites[s.k] || sprites.spark, s.x-w/2, s.y-w/2, w, w);
+  }
+  arCtx.globalAlpha = 1;
+  arCtx.globalCompositeOperation = 'source-over';
+  if (AR.absorbing) arRing();
+}
+function arRing(){
+  const x = AR.px, y = AR.py, R = 58 + 4*Math.sin(AR.t*6);
+  arCtx.save(); arCtx.translate(x,y);
+  arCtx.beginPath(); arCtx.arc(0,0,Math.min(AR.W,AR.H)*.42,0,Math.PI*2);
+  arCtx.strokeStyle = 'rgba(217,185,120,.14)'; arCtx.lineWidth = 1; arCtx.stroke();
+  arCtx.rotate(AR.spin*.5);
+  arCtx.beginPath(); arCtx.arc(0,0,R,0,Math.PI*2);
+  arCtx.strokeStyle = 'rgba(217,185,120,.6)'; arCtx.stroke();
+  arCtx.font = '14px serif'; arCtx.textAlign = 'center'; arCtx.textBaseline = 'middle';
+  arCtx.fillStyle = 'rgba(217,185,120,.85)';
+  const TRI = ['☰','☱','☲','☳','☴','☵','☶','☷'];
+  for (let i=0;i<8;i++){
+    const a = i/8*Math.PI*2;
+    arCtx.save(); arCtx.translate(Math.cos(a)*(R+15), Math.sin(a)*(R+15));
+    arCtx.rotate(a+Math.PI/2); arCtx.fillText(TRI[i],0,0); arCtx.restore();
+  }
+  arCtx.restore();
+  arCtx.save(); arCtx.translate(x,y);
+  arCtx.globalCompositeOperation = 'lighter';
+  const w = 34*(1+AR.core*.6)*2.6;
+  arCtx.drawImage(sprites.spark, -w/2, -w/2, w, w);
+  arCtx.globalCompositeOperation = 'source-over';
+  arCtx.beginPath(); arCtx.arc(0,0,13*(1+AR.core*.5),0,Math.PI*2);
+  arCtx.fillStyle = '#fff3d6'; arCtx.fill();
+  arCtx.restore();
+}
+
+const arBars = [];
+function arBuild(){
+  $('#arFive').innerHTML = ELEMENTS.map(e =>
+    `<div class="c"><div class="b"><i style="background:${e.color}"></i></div>
+     <span style="color:${e.color}">${e.cn}</span></div>`).join('');
+  $('#arFive').querySelectorAll('i').forEach(i => arBars.push(i));
+}
+function arDominant(){
+  let hi = 0;
+  for (let i=1;i<5;i++) if (AR.w[i] > AR.w[hi]) hi = i;
+  return ELEMENTS[hi];
+}
+function arHud(){
+  const mx = Math.max(.001, ...AR.w);
+  for (let i=0;i<5;i++) arBars[i].style.width = (AR.w[i]/mx*100).toFixed(0) + '%';
+  $('#arSun').textContent  = Math.round(AR.luma*100) + '%';
+  $('#arMove').textContent = Math.round(AR.motion*100) + '%';
+  $('#arDom').textContent  = AR.ready ? arDominant().cn : '—';
+  $('#arScan').textContent = AR.ready ? `${AR.cols}×${AR.rows} 取樣` : '掃描中…';
+  $('#arGain').textContent = AR.gain;
+  if (!AR.absorbing && AR.gain === 0) $('#arTip').textContent = '按住畫面，把此地靈氣吸進陣心';
+  else if (AR.absorbing) $('#arTip').textContent = AR.luma < .12
+    ? '太暗了，此處靈氣稀薄——找亮一點的地方'
+    : `正在吸取${arDominant().cn}氣…`;
+  else $('#arTip').textContent = '收功即可換算成今日能量';
+}
+
+/* 開關 */
+async function arOpen(){
+  try{
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('unsupported');
+    AR.stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } },
+      audio:false,
+    });
+  }catch(err){
+    const framed = window.self !== window.top;
+    const why = framed
+      ? '這裡是嵌在網頁裡的預覽視窗，瀏覽器不給用相機。請在新分頁開啟本頁（或用手機開）再試。'
+      : err && err.name === 'NotAllowedError'
+        ? '相機權限被拒。到瀏覽器的網站設定裡允許相機，再試一次。'
+        : !window.isSecureContext
+          ? '這個頁面不是安全連線（需 https 或 localhost），瀏覽器不給用相機。'
+          : '這裡取不到相機。換用手機瀏覽器開啟本頁，或改用其他方式納氣。';
+    toast(why);
+    return;
+  }
+  AR.on = true; AR.gain = 0; AR.tally = [0,0,0,0,0];
+  AR.parts = []; AR.sparks = []; AR.prev = null; AR.ready = false;
+  AR.w = [.2,.2,.2,.2,.2]; AR.luma = 0; AR.motion = 0;
+  AR.sunSum = 0; AR.moveSum = 0; AR.samples = 0; AR.absorbing = false;
+  arVid.srcObject = AR.stream;
+  try{ await arVid.play(); }catch(err){ /* 部分瀏覽器需使用者手勢，已在點擊內 */ }
+  $('#ar').classList.add('on');
+  arResize();
+  arLast = performance.now();
+  AR.raf = requestAnimationFrame(arLoop);
+}
+function arClose(){
+  AR.on = false; AR.absorbing = false;
+  cancelAnimationFrame(AR.raf);
+  if (AR.stream){ AR.stream.getTracks().forEach(t => t.stop()); AR.stream = null; }
+  arVid.srcObject = null;
+  $('#ar').classList.remove('on');
+}
+function arFinish(){
+  const collected = AR.gain;
+  const sun = AR.samples ? AR.sunSum/AR.samples : 0;
+  const move = AR.samples ? AR.moveSum/AR.samples : 0;
+  let hi = 0;
+  for (let i=1;i<5;i++) if (AR.tally[i] > AR.tally[hi]) hi = i;
+  const dom = collected ? ELEMENTS[hi] : arDominant();
+  arClose();
+  if (!collected){ toast('這回沒採到氣，按住畫面才吸得動'); return; }
+  const energy = Math.max(5, Math.min(AR_MAX, Math.round(collected/8)));
+  addEntry({ ts:Date.now(), kind:'ar', elem:dom.key, label:`採氣 · ${dom.cn}地`, note:'', energy });
+  const grade = sun > .5 ? '靈氣充盈' : sun > .28 ? '靈氣尚可' : '靈氣稀薄';
+  const remedy = BY(SHENG_FROM[dom.key]);
+  $('#scanLede').textContent = `${grade} · 採得 ${collected} 縷`;
+  $('#scanBody').innerHTML = `
+    <div class="wkhead">
+      <div class="big mono" style="color:${dom.color}">${dom.cn}</div>
+      <div class="cap">此地地氣</div>
+      <div class="delta mono up">＋${energy} 能量已入帳</div>
+    </div>
+    <div class="wkstats">
+      <div class="c"><div class="k">陽氣</div><div class="v">${Math.round(sun*100)} <em>%</em></div></div>
+      <div class="c"><div class="k">動氣</div><div class="v">${Math.round(move*100)} <em>%</em></div></div>
+      <div class="c"><div class="k">採得</div><div class="v">${collected} <em>縷</em></div></div>
+      <div class="c"><div class="k">主色</div><div class="v" style="color:${dom.color}">${dom.colorName || dom.tag}</div></div>
+    </div>
+    <p class="wkverdict">
+      你剛才對著的地方，${dom.cn}氣最盛（${dom.tag}）。<br>
+      ${sun > .5 ? '光線足，這是個聚氣的地方，適合久待。'
+        : sun > .28 ? '光線普通，待著無妨。'
+        : '偏暗，氣不易聚——想提神的話，換個亮一點的地方。'}
+      ${move > .35 ? '此處人來人往，動氣旺，適合行動與交際。' : '此處安靜，適合靜下來做事。'}<br>
+      ${dom.cn}地屬「${dom.tag}」，若想補它，記得<b>${remedy.cn}生${dom.cn}</b>——${remedy.advice[0]}。
+    </p>`;
+  open('#vScan');
+}
+$('#scanBtn').addEventListener('click', arOpen);
+$('#arClose').addEventListener('click', arClose);
+$('#arFinish').addEventListener('click', arFinish);
+arCv.addEventListener('pointerdown', ev => {
+  AR.px = ev.clientX; AR.py = ev.clientY; AR.absorbing = true;
+  arCv.setPointerCapture?.(ev.pointerId);
+});
+arCv.addEventListener('pointermove', ev => { AR.px = ev.clientX; AR.py = ev.clientY; });
+addEventListener('pointerup', () => { AR.absorbing = false; });
+addEventListener('pointercancel', () => { AR.absorbing = false; });
+addEventListener('resize', () => { if (AR.on) arResize(); });
+arBuild();
+
 /* ══════════ 本週回顧 ══════════ */
 function weekData(){
   const m = energyByDay(), days = [];
@@ -918,11 +1325,11 @@ function weekData(){
   for (let i=-13;i<=-7;i++) prev += m.get(dayKey(shiftDays(i))) || 0;
   const from = shiftDays(-6); from.setHours(0,0,0,0);
   const es = store.entries.filter(e => e.ts >= from.getTime());
-  const kinds = { gain:0, transmute:0, breath:0, sos:0 };
+  const kinds = { gain:0, transmute:0, breath:0, sos:0, ar:0 };
   const labels = new Map(), el = [0,0,0,0,0];
   for (const e of es){
     kinds[e.kind] = (kinds[e.kind] || 0) + 1;
-    if (e.kind === 'gain') labels.set(e.label, (labels.get(e.label)||0) + 1);
+    if (e.kind === 'gain' || e.kind === 'ar') labels.set(e.label, (labels.get(e.label)||0) + 1);
     if (e.elem && IDX[e.elem] !== undefined) el[IDX[e.elem]] += e.energy;
   }
   return {
@@ -972,7 +1379,7 @@ function showWeek(){
     </div>
     <div class="wkdays">${w.days.map(d => `<span>${'日一二三四五六'[d.d.getDay()]}</span>`).join('')}</div>
     <div class="wkstats">
-      <div class="c"><div class="k">納氣</div><div class="v">${w.kinds.gain} <em>件好事</em></div></div>
+      <div class="c"><div class="k">納氣</div><div class="v">${w.kinds.gain + (w.kinds.ar||0)} <em>件好事</em></div></div>
       <div class="c"><div class="k">化煞</div><div class="v">${w.kinds.transmute + w.kinds.sos} <em>次轉念</em></div></div>
       <div class="c"><div class="k">調息</div><div class="v">${w.kinds.breath} <em>回呼吸</em></div></div>
       <div class="c"><div class="k">滿陣</div><div class="v">${w.days.filter(d=>d.v>=GOAL).length} <em>／ 7 天</em></div></div>
