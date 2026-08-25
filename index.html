@@ -191,9 +191,57 @@
     position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:40;
     background:rgba(13,15,24,.96);border:1px solid var(--edge);border-radius:3px;
     padding:11px 20px;font-size:13px;letter-spacing:.14em;color:var(--gold);
-    opacity:0;pointer-events:none;transition:.28s;white-space:nowrap;max-width:92vw;
+    opacity:0;pointer-events:none;transition:.28s;max-width:88vw;text-align:center;line-height:1.7;
   }
   .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* 急救 */
+  .sos{
+    display:flex;align-items:center;justify-content:center;gap:12px;width:100%;
+    border:1px solid rgba(255,122,99,.26);border-radius:3px;background:rgba(255,122,99,.05);
+    padding:12px 14px;transition:.16s;
+  }
+  .sos:hover{background:rgba(255,122,99,.11);border-color:rgba(255,122,99,.5)}
+  .sos b{font-weight:400;color:#ff7a63;letter-spacing:.26em;text-indent:.26em;font-size:14px}
+  .sos small{color:var(--ink-3);font-size:11px;letter-spacing:.06em}
+
+  /* 提示橫幅 */
+  .banner{
+    display:none;align-items:center;gap:12px;border:1px solid var(--edge);border-radius:3px;
+    background:rgba(217,185,120,.07);padding:11px 14px;font-size:12.5px;color:var(--ink-2);letter-spacing:.06em;
+  }
+  .banner.on{display:flex}
+  .banner button{margin-left:auto;color:var(--gold);font-size:12px;white-space:nowrap;border-bottom:1px dotted rgba(217,185,120,.5)}
+  .panel h2 button{color:var(--gold);font-size:10px;letter-spacing:.16em;border-bottom:1px dotted rgba(217,185,120,.45)}
+
+  /* 週報 */
+  .wkhead{text-align:center}
+  .wkhead .big{font-family:var(--mono);font-size:42px;color:var(--gold);line-height:1.1}
+  .wkhead .cap{font-size:10px;letter-spacing:.34em;text-indent:.34em;color:var(--ink-3);margin-top:2px}
+  .wkhead .delta{font-family:var(--mono);font-size:12px;letter-spacing:.08em;margin-top:8px;color:var(--ink-3)}
+  .wkhead .delta.up{color:var(--wood)}
+  .wkbars{display:flex;align-items:flex-end;gap:6px;height:84px;margin:22px 0 6px}
+  .wkbars .col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+  .wkbars .col i{display:block;background:rgba(217,185,120,.75);border-radius:2px;min-height:2px;transition:height .4s}
+  .wkbars .col.today i{background:var(--earth)}
+  .wkdays{display:flex;gap:6px}
+  .wkdays span{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+  .wkstats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--edge-soft);border:1px solid var(--edge-soft);margin:20px 0 0}
+  .wkstats .c{background:#0d0f18;padding:11px 12px}
+  .wkstats .k{font-size:10px;letter-spacing:.2em;color:var(--ink-3)}
+  .wkstats .v{margin-top:4px;font-size:14px}
+  .wkstats .v em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .wkverdict{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--edge-soft);font-size:13.5px;line-height:2;color:var(--ink-2);letter-spacing:.04em}
+  .wkverdict b{color:var(--ink);font-weight:400}
+
+  /* 提醒設定 */
+  .setrow{display:flex;align-items:center;gap:12px;margin-top:6px}
+  .setrow input[type=time]{
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:var(--ink);
+    font-family:var(--mono);font-size:15px;padding:9px 11px;border-radius:3px;
+  }
+  .setrow .state{font-size:12px;color:var(--ink-3);letter-spacing:.08em}
+  .setrow .state.on{color:var(--wood)}
 
   @media (max-width:420px){
     .core .amount{font-size:40px}
@@ -210,6 +258,11 @@
   <div class="top">
     <div class="who">道號 · <button id="nameBtn">無名氏</button></div>
     <div class="date mono" id="dateLbl"></div>
+  </div>
+
+  <div class="banner" id="banner">
+    <span id="bannerTxt">晚課時間到了，今天還沒納氣。</span>
+    <button id="bannerAct">來記一件</button>
   </div>
 
   <section class="altar">
@@ -236,6 +289,10 @@
     <button class="act" data-act="breath"><span class="glyph">調息</span><small>一分鐘呼吸</small></button>
   </div>
 
+  <button class="sos" id="sosBtn">
+    <b>急 救</b><small>心裡很亂？三息 → 化煞，一分鐘</small>
+  </button>
+
   <section class="mantra">
     <div class="lbl">今日心法</div>
     <p id="mantraTxt">—</p>
@@ -248,7 +305,7 @@
   </section>
 
   <section class="panel trace">
-    <h2>修行足跡 <span id="streakLbl">連續 0 天</span></h2>
+    <h2>修行足跡 <span><button id="weekBtn">本週回顧</button> · <span id="streakLbl">連續 0 天</span></span></h2>
     <div class="grid28" id="grid28"></div>
     <div class="legend"><span id="gridFrom"></span><span>今日</span></div>
   </section>
@@ -259,6 +316,7 @@
   </section>
 
   <div class="foot">
+    <button id="remindBtn">晚課提醒</button>
     <button id="exportBtn">匯出紀錄</button>
     <a href="toy.html">打坐一輪</a>
     <button id="resetBtn">清空重修</button>
@@ -351,6 +409,79 @@
   </div>
 </div>
 
+<!-- 急救 -->
+<div class="veil" id="vSos">
+  <div class="sheet">
+    <button class="x" data-close aria-label="關閉">×</button>
+    <h3>急 救</h3>
+    <p class="lede" id="sosLede">先別想，跟著呼吸三次</p>
+
+    <div class="step on" data-step="0">
+      <div class="breath">
+        <div class="orb" id="sosOrb"><span class="ph" id="sosPh">準備</span></div>
+        <div class="cyc mono" id="sosCyc">第 0 ／ 3 息</div>
+      </div>
+      <div class="btnrow">
+        <button class="btn ghost" id="sosSkip">跳 過</button>
+        <button class="btn" id="sosStart">起 息</button>
+      </div>
+    </div>
+
+    <div class="step" data-step="1">
+      <label class="fld">用一句話說，發生什麼事（可略）</label>
+      <textarea id="sosTxt" rows="2" maxlength="300" placeholder="不用寫得好，寫出來就好"></textarea>
+      <div class="btnrow"><button class="btn" id="sosNext1">下 一 步</button></div>
+    </div>
+
+    <div class="step" data-step="2">
+      <p class="qn" id="sosQ">—</p>
+      <label class="fld">回它一句（可略）</label>
+      <textarea id="sosAns" rows="2" maxlength="200" placeholder="想到什麼寫什麼"></textarea>
+      <div class="btnrow">
+        <button class="btn ghost" id="sosQAgain">換個問題</button>
+        <button class="btn" id="sosDone">焚 化 收 功</button>
+      </div>
+    </div>
+
+    <div class="step" data-step="3">
+      <div class="burn"><div class="flame">✦</div><p id="sosCalm">—</p></div>
+      <div class="btnrow"><button class="btn" data-close>收 好</button></div>
+    </div>
+    <p class="fine">寫下的內容不會留存，只記下你化過一次煞。</p>
+  </div>
+</div>
+
+<!-- 本週回顧 -->
+<div class="veil" id="vWeek">
+  <div class="sheet">
+    <button class="x" data-close aria-label="關閉">×</button>
+    <h3>本 週 回 顧</h3>
+    <p class="lede" id="weekRange">—</p>
+    <div id="weekBody"></div>
+    <div class="btnrow"><button class="btn" data-close>收 好</button></div>
+  </div>
+</div>
+
+<!-- 晚課提醒 -->
+<div class="veil" id="vRemind">
+  <div class="sheet">
+    <button class="x" data-close aria-label="關閉">×</button>
+    <h3>晚 課 提 醒</h3>
+    <p class="lede">每天到點提醒你納氣</p>
+    <label class="fld">提醒時間</label>
+    <div class="setrow">
+      <input type="time" id="remindTime" value="21:30">
+      <span class="state" id="remindState">尚未開啟</span>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" id="remindOff">關 閉</button>
+      <button class="btn" id="remindOn">開 啟</button>
+    </div>
+    <p class="fine">分頁開著時會跳系統通知；沒開著也沒關係——到點之後再打開，
+      頁面上方會出現提醒橫幅。通知權限與時間都只存在這台裝置。</p>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -400,11 +531,18 @@ const STAGES = [
 ];
 const CN_NUM = ['','一','二','三','四','五','六','七','八','九'];
 const GOAL = 60;
-const VAL = { gain:10, transmute:25, breath:15 };
+const VAL = { gain:10, transmute:25, breath:15, sos:35 };
+const CALM = [
+  '過去了。剛剛那口氣，你自己撐住了。',
+  '事情還在，但你已經不在它裡面了。',
+  '你做了一件很難的事：在亂的時候停下來。',
+  '不用馬上解決它，今天先到這裡就好。',
+  '心是水，剛剛那陣浪已經過了。',
+];
 
 /* ══════════ 儲存 ══════════ */
 const KEY = 'fuqi.v1';
-const store = { profile:{ name:'', since:'' }, entries:[] };
+const store = { profile:{ name:'', since:'', remind:{ on:false, time:'21:30', last:'' } }, entries:[] };
 
 function load(){
   try{
@@ -505,6 +643,7 @@ function render(){
   renderFive();
   renderGrid();
   renderLog();
+  updateBanner();
 }
 
 function renderFive(){
@@ -551,9 +690,10 @@ function renderLog(){
     return;
   }
   box.innerHTML = '<ul>' + list.map(e => {
-    const color = e.elem ? BY(e.elem).color : (e.kind==='transmute' ? '#c9a2ff' : '#59c6ff');
+    const color = e.kind === 'transmute' || e.kind === 'sos' ? '#c9a2ff'
+                : e.elem ? BY(e.elem).color : '#59c6ff';
     const time = new Date(e.ts);
-    const label = e.kind === 'transmute' ? '化煞' : e.kind === 'breath' ? '調息一分鐘' : e.label;
+    const label = e.kind === 'transmute' ? '化煞' : e.kind === 'breath' ? '調息一分鐘' : (e.label || '納氣');
     const note = e.note ? ` <em>· ${esc(e.note)}</em>` : '';
     return `<li>
       <span class="dot" style="background:${color}"></span>
@@ -571,7 +711,8 @@ function addEntry(e){
   const st0 = stageOf(grandTotal());
   store.entries.push(e);
   save();
-  burst(e.elem ? BY(e.elem).color : (e.kind==='transmute' ? '#c9a2ff' : '#59c6ff'));
+  burst(e.kind === 'transmute' || e.kind === 'sos' ? '#c9a2ff'
+      : e.elem ? BY(e.elem).color : '#59c6ff');
   const wasBelow = todayTotal() - e.energy < GOAL;
   render();
   const st1 = stageOf(grandTotal());
@@ -588,6 +729,7 @@ document.addEventListener('click', ev => {
   if (!c) return;
   const v = c.closest('.veil');
   if (v.id === 'vBreath') resetBreath();
+  if (v.id === 'vSos') breathSos.stop();
   close('#' + v.id);
 });
 document.addEventListener('keydown', ev => {
@@ -596,7 +738,7 @@ document.addEventListener('keydown', ev => {
       if (v.id === 'vName' && !store.profile.name) return;   // 尚未開光不給關
       v.classList.remove('on');
     });
-    stopBreath();
+    resetBreath(); breathSos.stop();
   }
 });
 
@@ -675,46 +817,240 @@ function finishTrans(keep){
 $('#transBurn').addEventListener('click', () => finishTrans(false));
 $('#transKeep').addEventListener('click', () => finishTrans(true));
 
-/* 調息 */
-const PHASES = [['in','吸 氣',4000],['hold','屏 息',4000],['out','吐 氣',6000]];
-const CYCLES = 4;
-let bTimer = null, bCycle = 0, bPhase = 0, bRunning = false;
+/* 調息（可重用的呼吸器） */
+function Breather(cfg){
+  const orb = $(cfg.orb), phEl = $(cfg.ph), cycEl = $(cfg.cyc);
+  let timer = null, cycle = 0, phase = 0, running = false;
+  function stop(){ running = false; clearTimeout(timer); timer = null; }
+  function reset(){
+    stop(); cycle = 0; phase = 0;
+    orb.className = 'orb'; phEl.textContent = '準備';
+    cycEl.textContent = `第 0 ／ ${cfg.cycles} 息`;
+  }
+  function step(){
+    if (!running) return;
+    const [cls, txt, ms] = cfg.phases[phase];
+    orb.className = 'orb ' + cls;
+    phEl.textContent = txt;
+    cycEl.textContent = `第 ${Math.min(cycle+1, cfg.cycles)} ／ ${cfg.cycles} 息`;
+    timer = setTimeout(() => {
+      phase++;
+      if (phase >= cfg.phases.length){
+        phase = 0; cycle++;
+        if (cycle >= cfg.cycles){
+          stop();
+          phEl.textContent = '圓 滿'; orb.className = 'orb hold';
+          cfg.onDone();
+          return;
+        }
+      }
+      step();
+    }, ms);
+  }
+  return {
+    start(){ if (running) return; running = true; cycle = 0; phase = 0; step(); },
+    stop, reset,
+    get running(){ return running; },
+  };
+}
+
+const breathMain = Breather({
+  orb:'#orb', ph:'#orbPh', cyc:'#orbCyc',
+  phases:[['in','吸 氣',4000],['hold','屏 息',4000],['out','吐 氣',6000]], cycles:4,
+  onDone(){
+    addEntry({ ts:Date.now(), kind:'breath', elem:'water', label:'調息一分鐘', note:'', energy:VAL.breath });
+    setTimeout(() => { close('#vBreath'); resetBreath(); }, 1100);
+  },
+});
 function resetBreath(){
-  stopBreath(); bCycle = 0; bPhase = 0;
-  $('#orb').className = 'orb'; $('#orbPh').textContent = '準備';
-  $('#orbCyc').textContent = `第 0 ／ ${CYCLES} 息`;
+  breathMain.reset();
   $('#breathStart').textContent = '起 息'; $('#breathStart').disabled = false;
 }
-function stopBreath(){ bRunning = false; clearTimeout(bTimer); bTimer = null; }
-function stepBreath(){
-  if (!bRunning) return;
-  const [cls, label, ms] = PHASES[bPhase];
-  $('#orb').className = 'orb ' + cls;
-  $('#orbPh').textContent = label;
-  $('#orbCyc').textContent = `第 ${Math.min(bCycle+1, CYCLES)} ／ ${CYCLES} 息`;
-  bTimer = setTimeout(() => {
-    bPhase++;
-    if (bPhase >= PHASES.length){
-      bPhase = 0; bCycle++;
-      if (bCycle >= CYCLES){
-        stopBreath();
-        $('#orbPh').textContent = '圓 滿';
-        $('#orb').className = 'orb hold';
-        addEntry({ ts:Date.now(), kind:'breath', elem:'water', label:'調息一分鐘', note:'', energy:VAL.breath });
-        setTimeout(() => { close('#vBreath'); resetBreath(); }, 1100);
-        return;
-      }
-    }
-    stepBreath();
-  }, ms);
-}
 $('#breathStart').addEventListener('click', () => {
-  if (bRunning) return;
-  bRunning = true; bCycle = 0; bPhase = 0;
+  if (breathMain.running) return;
   $('#breathStart').disabled = true; $('#breathStart').textContent = '進行中';
-  stepBreath();
+  breathMain.start();
 });
 $('#breathStop').addEventListener('click', () => { resetBreath(); close('#vBreath'); });
+
+/* ══════════ 急救：三息 → 化煞 ══════════ */
+const breathSos = Breather({
+  orb:'#sosOrb', ph:'#sosPh', cyc:'#sosCyc',
+  phases:[['in','吸 氣',4000],['out','吐 氣',6000]], cycles:3,
+  onDone(){ setTimeout(() => sosStep(1), 900); },
+});
+const SOS_LEDE = ['先別想，跟著呼吸三次','現在，說說發生什麼事','換個角度看它一眼','收 功'];
+function sosStep(n){
+  document.querySelectorAll('#vSos .step').forEach(el => el.classList.toggle('on', +el.dataset.step === n));
+  $('#sosLede').textContent = SOS_LEDE[n];
+  if (n === 1) $('#sosTxt').focus();
+  if (n === 2){ $('#sosQ').textContent = QUESTIONS[Math.floor(Math.random()*QUESTIONS.length)]; }
+  if (n === 3){
+    $('#sosCalm').textContent = CALM[Math.floor(Math.random()*CALM.length)];
+    addEntry({ ts:Date.now(), kind:'sos', elem:'water', label:'急救 · 三息化煞', note:'', energy:VAL.sos });
+  }
+}
+function openSos(){
+  breathSos.reset();
+  $('#sosTxt').value = ''; $('#sosAns').value = '';
+  $('#sosStart').disabled = false; $('#sosStart').textContent = '起 息';
+  sosStep(0);
+  open('#vSos');
+}
+$('#sosBtn').addEventListener('click', openSos);
+$('#sosStart').addEventListener('click', () => {
+  if (breathSos.running) return;
+  $('#sosStart').disabled = true; $('#sosStart').textContent = '進行中';
+  breathSos.start();
+});
+$('#sosSkip').addEventListener('click', () => { breathSos.stop(); sosStep(1); });
+$('#sosNext1').addEventListener('click', () => sosStep(2));
+$('#sosQAgain').addEventListener('click', () => {
+  $('#sosQ').textContent = QUESTIONS[Math.floor(Math.random()*QUESTIONS.length)];
+});
+$('#sosDone').addEventListener('click', () => sosStep(3));
+
+/* ══════════ 本週回顧 ══════════ */
+function weekData(){
+  const m = energyByDay(), days = [];
+  for (let i=-6;i<=0;i++){ const d = shiftDays(i); days.push({ d, k:dayKey(d), v:m.get(dayKey(d))||0 }); }
+  let prev = 0;
+  for (let i=-13;i<=-7;i++) prev += m.get(dayKey(shiftDays(i))) || 0;
+  const from = shiftDays(-6); from.setHours(0,0,0,0);
+  const es = store.entries.filter(e => e.ts >= from.getTime());
+  const kinds = { gain:0, transmute:0, breath:0, sos:0 };
+  const labels = new Map(), el = [0,0,0,0,0];
+  for (const e of es){
+    kinds[e.kind] = (kinds[e.kind] || 0) + 1;
+    if (e.kind === 'gain') labels.set(e.label, (labels.get(e.label)||0) + 1);
+    if (e.elem && IDX[e.elem] !== undefined) el[IDX[e.elem]] += e.energy;
+  }
+  return {
+    days, prev,
+    cur: days.reduce((a,b)=>a+b.v,0),
+    active: days.filter(d=>d.v>0).length,
+    kinds, el,
+    top: [...labels.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3),
+  };
+}
+function weekVerdict(w){
+  if (!w.cur) return '這週還沒開始納氣。不必補回來——今天記一件小事，足跡就接上了。';
+  const lines = [];
+  lines.push(`七天裡有 <b>${w.active}</b> 天納了氣，共 <b>${w.cur}</b> 縷。`);
+  if (w.prev){
+    const d = w.cur - w.prev;
+    lines.push(d >= 0
+      ? `比上週多了 <b>${d}</b>，氣勢在往上走。`
+      : `比上週少了 <b>${-d}</b>——能量本來就有起伏，不用跟自己過不去。`);
+  }
+  const heal = w.kinds.transmute + w.kinds.sos;
+  if (heal) lines.push(`你化了 <b>${heal}</b> 次煞。這是最難的一種能量：不是躲開壞事，是把它處理掉。`);
+  if (w.top.length) lines.push(`最常做的是「<b>${w.top[0][0]}</b>」，${w.top[0][1]} 次。`);
+  const sum = w.el.reduce((a,b)=>a+b,0);
+  if (sum){
+    let hi=0, lo=0;
+    for (let i=1;i<5;i++){ if (w.el[i]>w.el[hi]) hi=i; if (w.el[i]<w.el[lo]) lo=i; }
+    const weak = ELEMENTS[lo], remedy = BY(SHENG_FROM[weak.key]);
+    lines.push(`本週<b>${ELEMENTS[hi].cn}</b>氣最旺、<b>${weak.cn}</b>氣最虛，下週試試「${remedy.advice[0]}」。`);
+  }
+  return lines.join('<br>');
+}
+function showWeek(){
+  const w = weekData(), max = Math.max(GOAL, ...w.days.map(d=>d.v));
+  $('#weekRange').textContent = `${w.days[0].k} — ${w.days[6].k}`;
+  const delta = w.prev ? w.cur - w.prev : null;
+  $('#weekBody').innerHTML = `
+    <div class="wkhead">
+      <div class="big mono">${w.cur}</div>
+      <div class="cap">本週納氣</div>
+      <div class="delta mono ${delta !== null && delta >= 0 ? 'up' : ''}">${
+        delta === null ? '上週無紀錄' : (delta >= 0 ? `▲ 比上週 +${delta}` : `▼ 比上週 ${delta}`)
+      }</div>
+    </div>
+    <div class="wkbars">
+      ${w.days.map((d,i) => `<div class="col ${i===6?'today':''}"><i style="height:${Math.max(2, d.v/max*100)}%"></i></div>`).join('')}
+    </div>
+    <div class="wkdays">${w.days.map(d => `<span>${'日一二三四五六'[d.d.getDay()]}</span>`).join('')}</div>
+    <div class="wkstats">
+      <div class="c"><div class="k">納氣</div><div class="v">${w.kinds.gain} <em>件好事</em></div></div>
+      <div class="c"><div class="k">化煞</div><div class="v">${w.kinds.transmute + w.kinds.sos} <em>次轉念</em></div></div>
+      <div class="c"><div class="k">調息</div><div class="v">${w.kinds.breath} <em>回呼吸</em></div></div>
+      <div class="c"><div class="k">滿陣</div><div class="v">${w.days.filter(d=>d.v>=GOAL).length} <em>／ 7 天</em></div></div>
+    </div>
+    <p class="wkverdict">${weekVerdict(w)}</p>`;
+  open('#vWeek');
+}
+$('#weekBtn').addEventListener('click', showWeek);
+
+/* ══════════ 晚課提醒 ══════════ */
+function remind(){ return Object.assign({ on:false, time:'21:30', last:'' }, store.profile.remind || {}); }
+function setRemind(patch){ store.profile.remind = Object.assign(remind(), patch); save(); }
+function pastRemindTime(){
+  const r = remind(), [hh,mm] = r.time.split(':').map(Number);
+  const n = new Date();
+  return n.getHours()*60 + n.getMinutes() >= hh*60 + mm;
+}
+function updateBanner(){
+  const r = remind();
+  const show = r.on && pastRemindTime() && todayTotal() < GOAL;
+  $('#banner').classList.toggle('on', show);
+  if (show){
+    const t = todayTotal();
+    $('#bannerTxt').textContent = t
+      ? `晚課時間到了 · 今日 ${t} ／ ${GOAL}，還差一點。`
+      : '晚課時間到了，今天還沒納氣。';
+  }
+}
+function fireNotice(){
+  const t = todayTotal();
+  const body = t ? `今日 ${t} ／ ${GOAL} —— 再記一件就圓滿了。` : '今天還沒納氣。想想看，有什麼好事？';
+  try{
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted'){
+      new Notification('晚課時間到', { body, tag:'fuqi-remind' });
+    }
+  }catch(err){ /* 沙箱或不支援：橫幅仍會顯示 */ }
+}
+function renderRemindSheet(){
+  const r = remind();
+  $('#remindTime').value = r.time;
+  const st = $('#remindState');
+  st.textContent = r.on ? `已開啟 · 每天 ${r.time}` : '尚未開啟';
+  st.classList.toggle('on', r.on);
+}
+$('#remindBtn').addEventListener('click', () => { renderRemindSheet(); open('#vRemind'); });
+$('#remindOn').addEventListener('click', async () => {
+  const time = $('#remindTime').value || '21:30';
+  setRemind({ on:true, time, last:'' });
+  let granted = false;
+  try{
+    if (typeof Notification !== 'undefined'){
+      const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      granted = perm === 'granted';
+    }
+  }catch(err){ granted = false; }
+  renderRemindSheet(); updateBanner();
+  toast(granted ? `晚課已設在每天 ${time}` : `晚課已設在每天 ${time}（此處不能跳通知，改以頁面橫幅提醒）`);
+  close('#vRemind');
+});
+$('#remindOff').addEventListener('click', () => {
+  setRemind({ on:false });
+  renderRemindSheet(); updateBanner();
+  toast('晚課提醒已關閉'); close('#vRemind');
+});
+$('#bannerAct').addEventListener('click', () => $('.act[data-act="gain"]').click());
+
+/* 每半分鐘校一次：跨午夜換日、到點提醒 */
+let curDay = dayKey(new Date());
+setInterval(() => {
+  const k = dayKey(new Date());
+  if (k !== curDay){ curDay = k; render(); }        // 過了午夜，畫面自己換日
+  const r = remind();
+  if (r.on && pastRemindTime() && todayTotal() < GOAL && r.last !== k){
+    setRemind({ last:k });
+    fireNotice();
+  }
+  updateBanner();
+}, 30000);
 
 /* 刪除單筆 */
 $('#logBody').addEventListener('click', ev => {
@@ -831,6 +1167,7 @@ function loop(now){
 load();
 buildGain();
 render();
+renderRemindSheet();
 initAura();
 if (!store.profile.name){ open('#vName'); setTimeout(()=>$('#nameIn').focus(), 60); }
 })();

@@ -556,7 +556,9 @@ const inBirth = document.getElementById('inBirth');
 function ignite(){
   const name = (inName.value.trim() || '無名氏');
   const birth = inBirth.value || '';
-  const today = new Date().toISOString().slice(0,10);
+  const n = new Date();                                   // 一律用本機時區，toISOString() 會變成 UTC 日期
+  const pad = v => String(v).padStart(2,'0');
+  const today = `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;
   S.seed = hashStr(name + '|' + birth + '|' + today);
   S.rnd = mulberry32(S.seed);
   S.natal = ELEMENTS[S.seed % 5].key;
