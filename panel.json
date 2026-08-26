@@ -1,6 +1,6 @@
 {
   "show": "Ray Player",
-  "notes": "Model ids move fast -- replace each one with an id your key can actually call. kind is the wire protocol, not the company: anything OpenAI-compatible (xAI, DeepSeek, Groq, OpenRouter, vLLM, Ollama) uses openai-compatible with its own base_url.",
+  "notes": "Model ids move fast -- replace each one with an id your key can actually call. kind is the wire protocol, not the company: anything OpenAI-compatible (xAI, DeepSeek, Groq, OpenRouter, vLLM, Ollama) uses openai-compatible with its own base_url. Voices are configured per seat and are independent of the text model; voice_defaults applies to everyone unless a seat overrides it. Gemini voice names must be real prebuilt names; ElevenLabs 'name' is a voice id from your library.",
   "language": "zh-Hant",
   "policy": "moderator",
   "temperature": 0.8,
@@ -13,7 +13,11 @@
       "model": "claude-opus-5",
       "api_key_env": "ANTHROPIC_API_KEY"
     },
-    "max_words": 70
+    "max_words": 70,
+    "voice": {
+      "name": "Charon",
+      "style": "以清楚、帶引導性的主持語氣說"
+    }
   },
   "speakers": [
     {
@@ -22,6 +26,9 @@
         "kind": "anthropic",
         "model": "claude-opus-5",
         "api_key_env": "ANTHROPIC_API_KEY"
+      },
+      "voice": {
+        "name": "Kore"
       }
     },
     {
@@ -31,6 +38,9 @@
         "model": "gpt-5",
         "base_url": "https://api.openai.com/v1",
         "api_key_env": "OPENAI_API_KEY"
+      },
+      "voice": {
+        "name": "Puck"
       }
     },
     {
@@ -39,6 +49,9 @@
         "kind": "gemini",
         "model": "gemini-2.5-pro",
         "api_key_env": "GEMINI_API_KEY"
+      },
+      "voice": {
+        "name": "Aoede"
       }
     },
     {
@@ -48,7 +61,17 @@
         "model": "grok-4",
         "base_url": "https://api.x.ai/v1",
         "api_key_env": "XAI_API_KEY"
+      },
+      "voice": {
+        "name": "Fenrir"
       }
     }
-  ]
+  ],
+  "voice_defaults": {
+    "kind": "gemini",
+    "model": "gemini-2.5-flash-preview-tts",
+    "api_key_env": "GEMINI_API_KEY",
+    "sample_rate": 24000,
+    "style": "以自然的對話語氣說"
+  }
 }

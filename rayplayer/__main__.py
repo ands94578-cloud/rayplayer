@@ -7,8 +7,10 @@ import time
 from pathlib import Path
 
 from . import panel as panel_mod
-from . import orchestrator, transcript
+from . import audio as audio_mod
+from . import orchestrator, render, transcript
 from .providers import ProviderError
+from .voices import VoiceError
 
 
 def slugify(topic: str) -> str:
@@ -28,6 +30,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--host-every", type=int, default=4, help="host steps in every N panelist turns")
     p.add_argument("--dissent-after", type=int, default=3, help="nudge for disagreement after N agreeing turns in a row (0 disables)")
     p.add_argument("--out", default="out", help="output directory")
+    p.add_argument("--audio", action="store_true", help="render the episode to audio after recording")
+    p.add_argument("--offline-voices", action="store_true", help="render tones instead of speech -- no TTS key, no cost")
+    p.add_argument("--gap", type=float, default=0.4, help="seconds of silence between turns")
+    p.add_argument("--jobs", type=int, default=4, help="synthesize N turns concurrently")
     p.add_argument("--offline", action="store_true", help="run every seat on the mock provider -- no keys, no cost, fake transcript")
     args = p.parse_args(argv)
 
@@ -67,6 +73,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f"! {e}", file=sys.stderr)
     print(f"transcript: {paths['markdown']}")
     print(f"run record: {paths['json']}")
+
+    if args.audio:
+        print()
+        try:
+            panel_mod.attach_voices(pnl, offline=args.offline_voices)
+            result = render.render(
+                run.to_dict(), pnl, paths["json"].with_suffix(""),
+                gap_seconds=args.gap, jobs=args.jobs,
+            )
+        except (ValueError, VoiceError) as e:
+            print(f"recorded fine, but rendering audio failed: {e}", file=sys.stderr)
+            return 1
+        for e in result["errors"]:
+            print(f"! {e}", file=sys.stderr)
+        print(f"episode:    {result['episode']} ({audio_mod.timestamp(result['seconds'])})")
+        print(f"cues:       {result['cues']}")
     return 1 if run.errors and not run.turns else 0
 
 

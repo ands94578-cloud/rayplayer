@@ -10,14 +10,24 @@ from __future__ import annotations
 import json
 import os
 import time
-import urllib.error
-import urllib.request
+import zlib
 from dataclasses import dataclass
 from typing import Any
+
+from .http import HttpError, post_json
 
 
 class ProviderError(RuntimeError):
     pass
+
+
+def _call(url: str, headers: dict[str, str], body: dict[str, Any], timeout: int, retries: int) -> dict[str, Any]:
+    """One public error type per layer: the orchestrator only has to know
+    that a turn failed, not which transport it failed in."""
+    try:
+        return post_json(url, headers, body, timeout, retries)
+    except HttpError as e:
+        raise ProviderError(str(e)) from e
 
 
 @dataclass
@@ -52,27 +62,6 @@ def merge_turns(messages: list[Msg]) -> list[Msg]:
     return out
 
 
-def _post(url: str, headers: dict[str, str], body: dict[str, Any], timeout: int, retries: int) -> dict[str, Any]:
-    data = json.dumps(body).encode("utf-8")
-    headers = {"content-type": "application/json", **headers}
-    last: Exception | None = None
-    for attempt in range(retries + 1):
-        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            detail = e.read().decode("utf-8", "replace")[:500]
-            last = ProviderError(f"HTTP {e.code} from {url}: {detail}")
-            if e.code not in (408, 409, 429, 500, 502, 503, 504):
-                raise last from e
-        except (urllib.error.URLError, TimeoutError) as e:
-            last = ProviderError(f"network error calling {url}: {e}")
-        if attempt < retries:
-            time.sleep(2 ** attempt)
-    raise last  # type: ignore[misc]
-
-
 class Provider:
     """Base adapter. `spec` is the speaker's provider block from the panel file."""
 
@@ -100,7 +89,7 @@ class AnthropicProvider(Provider):
     def complete(self, system, messages, temperature, max_tokens):
         base = self.spec.get("base_url") or os.environ.get("ANTHROPIC_BASE_URL") or "https://api.anthropic.com"
         started = time.time()
-        r = _post(
+        r = _call(
             f"{base.rstrip('/')}/v1/messages",
             {"x-api-key": self.api_key(), "anthropic-version": "2023-06-01"},
             {
@@ -127,7 +116,7 @@ class OpenAIChatProvider(Provider):
         payload = [{"role": "system", "content": system}]
         payload += [{"role": m.role, "content": m.content} for m in merge_turns(messages)]
         started = time.time()
-        r = _post(
+        r = _call(
             f"{base.rstrip('/')}/chat/completions",
             {"authorization": f"Bearer {self.api_key()}"},
             {
@@ -155,7 +144,7 @@ class GeminiProvider(Provider):
             for m in merge_turns(messages)
         ]
         started = time.time()
-        r = _post(
+        r = _call(
             f"{base.rstrip('/')}/v1beta/models/{self.model}:generateContent",
             {"x-goog-api-key": self.api_key()},
             {
@@ -198,7 +187,7 @@ class MockProvider(Provider):
         return "mock"
 
     def complete(self, system, messages, temperature, max_tokens):
-        seed = abs(hash((self.model, system[:60], len(messages))))
+        seed = zlib.crc32(f"{self.model}|{system[:60]}|{len(messages)}".encode())
         line = self.LINES[seed % len(self.LINES)]
         return Completion(f"[mock:{self.model}] {line}", 0, 0, 1)
 
