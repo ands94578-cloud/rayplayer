@@ -1,0 +1,44 @@
+name: 部署到 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 啟用並設定 Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: 組出靜態站台
+        run: |
+          mkdir -p _site
+          cp index.html toy.html README.md _site/
+          ls -la _site
+
+      - name: 上傳站台
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: 發佈
+        id: deployment
+        uses: actions/deploy-pages@v4
