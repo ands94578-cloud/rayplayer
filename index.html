@@ -27,7 +27,13 @@
     margin:0;min-height:100%;background:var(--ground);color:var(--ink);
     font-family:var(--serif);font-weight:300;line-height:1.7;
     -webkit-tap-highlight-color:transparent;
+    /* 長按吸取時不要跳出反白與複製選單 */
+    -webkit-user-select:none;user-select:none;
+    -webkit-touch-callout:none;
+    overscroll-behavior-y:contain;
   }
+  /* 但輸入框仍要能選字、貼上 */
+  input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
   canvas#aura{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
   .app{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:26px 18px 60px;display:flex;flex-direction:column;gap:26px}
   button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
@@ -1307,6 +1313,8 @@ function arFinish(){
 $('#scanBtn').addEventListener('click', arOpen);
 $('#arClose').addEventListener('click', arClose);
 $('#arFinish').addEventListener('click', arFinish);
+// 長按畫面是吸取手勢，不是選字；擋掉 iOS/Android 的長按選單
+arCv.addEventListener('contextmenu', ev => ev.preventDefault());
 arCv.addEventListener('pointerdown', ev => {
   AR.px = ev.clientX; AR.py = ev.clientY; AR.absorbing = true;
   arCv.setPointerCapture?.(ev.pointerId);
